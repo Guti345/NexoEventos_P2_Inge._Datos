@@ -1,1 +1,1 @@
-# NexoEventos_P2_Inge._Datos
+# Parcial 2 Ingeniería de Datos: NexoEventos
