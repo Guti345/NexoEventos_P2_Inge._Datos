@@ -39,7 +39,9 @@ class EventosEntity(Base):
         CheckConstraint("aforo_esperado > 0", name='check_aforo_esperado_positivo'),
         CheckConstraint("estado IN ('Cotizado', 'Confirmado', 'Finalizado', 'Cancelado')", name='check_estado_evento_valido'),
         CheckConstraint("tipo IN ('Conferencia', 'Taller', 'Seminario', 'Exposición', 'Otro')", name='check_tipo_evento_valido'),
-        CheckConstraint("precio_unidad_cotizado >= 0", name='check_precio_no_negativo')
+        CheckConstraint("precio_unidad_cotizado >= 0", name='check_precio_no_negativo'),
+        CheckConstraint("valor_total_cotizado >= 0", name='check_valor_total_no_negativo'),
+        CheckConstraint("tasa_asistencia >= 0 AND tasa_asistencia <= 100", name='check_tasa_asistencia_valida')
     )
     id = Column(Integer, primary_key=True, index=True)
     nombre = Column(String(100), nullable=False)
@@ -55,6 +57,8 @@ class EventosEntity(Base):
     salon = relationship("SalonesEntity", back_populates="eventos")
     coordinador = relationship("StaffEntity", back_populates="eventos")
     precio_unidad_cotizado = Column(Numeric(12, 2), nullable=False)
+    tasa_asistencia = Column(Numeric(3, 2), nullable=True)
+    valor_total_cotizado = Column(Numeric(12, 2), nullable=False)
 
 class ServiciosEntity(Base):
     __tablename__ = "servicios"
@@ -98,11 +102,11 @@ class AsistentesEntity(Base):
 class InscripcionesEntity(Base):
     __tablename__ = "inscripciones"
     __table_args__ = (
-        CheckConstraint("fecha_Checkin <= NOW()", name='check_fecha_Checkin_no_futura'),
+        CheckConstraint("fecha_checkin <= NOW()", name='check_fecha_checkin_no_futura'),
         UniqueConstraint("asistente_id", "evento_id", name="unique_asistente_evento")
     )
     id = Column(Integer, primary_key=True, index=True)
-    fecha_Checkin = Column(DateTime, nullable=True)
+    fecha_checkin = Column(DateTime, nullable=True)
     asistente_id = Column(Integer, ForeignKey("asistentes.id"))
     evento_id = Column(Integer, ForeignKey("eventos.id"))
     asistente = relationship("AsistentesEntity", back_populates="asistentes_eventos")
