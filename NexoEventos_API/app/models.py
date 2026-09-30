@@ -38,7 +38,7 @@ class EventosEntity(Base):
         CheckConstraint("inicio < fin", name='check_inicio_menor_fin'),
         CheckConstraint("aforo_esperado > 0", name='check_aforo_esperado_positivo'),
         CheckConstraint("estado IN ('Cotizado', 'Confirmado', 'Finalizado', 'Cancelado')", name='check_estado_evento_valido'),
-        CheckConstraint("tipo IN ('Conferencia', 'Taller', 'Seminario', 'Exposición', 'Otro')", name='check_tipo_evento_valido'),
+        CheckConstraint("tipo IN ('Congreso', 'Conferencia', 'Taller', 'Feria', 'Seminario', 'Exposición', 'Corporativo', 'Social', 'Otro')", name='check_tipo_evento_valido'),
         CheckConstraint("precio_unidad_cotizado >= 0", name='check_precio_no_negativo'),
         CheckConstraint("valor_total_cotizado >= 0", name='check_valor_total_no_negativo'),
         CheckConstraint("tasa_asistencia >= 0 AND tasa_asistencia <= 100", name='check_tasa_asistencia_valida')
