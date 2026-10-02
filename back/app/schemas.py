@@ -39,7 +39,7 @@ class ClienteResponse(ClienteBase):
 
 #DTO - Rules para Salon
 class SalonBase(BaseModel):
-    nombre_salon: str = Field(..., min_length=1, max_length=50, description="Nombre del salón")
+    nombre_salon: str = Field(..., min_length=1, max_length=40, description="Nombre del salón")
     tamano: TamanoSalon = Field(..., description="Tamaño del salón (Pequeño, Mediano o Grande)")
     capacidad: int = Field(..., gt=0, description="Capacidad del salón")
     precio_hora: Decimal = Field(..., ge=0, max_digits=12, decimal_places=2, description="Precio por hora del salón")
@@ -48,7 +48,7 @@ class SalonCreate(SalonBase):
     pass
 
 class SalonUpdate(BaseModel):
-    nombre_salon: Optional[str] = Field(None, min_length=1, max_length=50, description="Nombre del salón")
+    nombre_salon: Optional[str] = Field(None, min_length=1, max_length=40, description="Nombre del salón")
     tamano: Optional[TamanoSalon] = None
     capacidad: Optional[int] = Field(None, gt=0, description="Capacidad del salón")
     precio_hora: Optional[Decimal] = Field(None, ge=0, max_digits=12, decimal_places=2, description="Precio por hora del salón")
@@ -56,16 +56,17 @@ class SalonUpdate(BaseModel):
 
 class SalonResponse(SalonBase):
     id: int
+    habilitado: bool
 
     class Config:
         from_attributes = True
 
+#DTO - Rules para Staff
 class StaffBase(BaseModel):
     nombre: str = Field(..., min_length=2, max_length=100, description="Nombre del staff")
     cargo: CargoStaff = Field(..., description="Cargo del staff (Director, Gerente, Jefe, Coordinador, Auxiliar o Técnico)")
     area: AreaStaff = Field(..., description="Área del staff (Dirección, Operaciones, Comercial, Logística, Alimentos y Bebidas, Audiovisuales)")
     email: EmailStr = Field(..., description="email electrónico del staff")
-    telefono: str = Field(..., min_length=7, max_length=10, pattern=r"^[0-9]+$", description="Número de teléfono del staff")
     fecha_ingreso: date = Field(..., description="Fecha de ingreso del staff")
     jefe_id: Optional[int] = Field(None, gt=0, description="ID del jefe del staff (si aplica)")
 
@@ -83,7 +84,6 @@ class StaffUpdate(BaseModel):
     cargo: Optional[CargoStaff] = None
     area: Optional[AreaStaff] = None
     email: Optional[EmailStr] = None
-    telefono: Optional[str] = None
     fecha_ingreso: Optional[date] = None
     jefe_id: Optional[int] = Field(None, gt=0, description="ID del jefe del staff (si aplica)")
 
@@ -126,7 +126,7 @@ class EventoUpdate(BaseModel):
 class EventoResponse(EventoBase):
     id: int
     estado: EstadoEvento
-    precio_unidad_cotizado: Decimal
+    precio_hora_salon_cotizado: Decimal
     valor_total_cotizado: Decimal
     tasa_asistencia: Optional[Decimal] = None
 
@@ -134,7 +134,7 @@ class EventoResponse(EventoBase):
         from_attributes = True
 
 #DTO - Rules para EventosEstado
-class EventosEstadoUpdate(BaseModel):
+class EventoEstadoUpdate(BaseModel):
     estado: EstadoEvento = Field(..., description="Nuevo estado del evento (Cotizado, Confirmado, Finalizado o Cancelado)")
 
 #DTO - Rules para Servicios
@@ -147,7 +147,7 @@ class ServicioBase(BaseModel):
 class ServicioCreate(ServicioBase):
     pass
 
-class ServiciosUpdate(BaseModel):
+class ServicioUpdate(BaseModel):
     nombre_servicio: Optional[str] = Field(None, min_length=1, max_length=30, description="Nombre del servicio")
     descripcion: Optional[str] = Field(None, min_length=1, max_length=200, description="Descripción del servicio")
     unidad_cobro: Optional[UnidadCobro] = None
@@ -160,21 +160,21 @@ class ServicioResponse(ServicioBase):
         from_attributes = True
 
 #DTO - Rules para ServicioEvento
-class ServiciosEventoBase(BaseModel):
+class ServicioEventoBase(BaseModel):
     servicio_id: int = Field(..., gt=0, description="ID del servicio")
     cantidad: Optional[int] = Field(None, gt=0, description="Cantidad del servicio")
 
-class ServiciosEventoCreate(ServiciosEventoBase):
+class ServicioEventoCreate(ServicioEventoBase):
     pass
 
-class ServiciosEventoUpdate(BaseModel):
+class ServicioEventoUpdate(BaseModel):
     cantidad: Optional[int] = Field(None, gt=0, description="Cantidad del servicio")
 
-class ServiciosEventoResponse(ServiciosEventoBase):
+class ServicioEventoResponse(ServicioEventoBase):
     id: int
     evento_id: int
     servicio_id: int
-    precio_unidad_cotizado: Decimal
+    precio_hora_salon_cotizado: Decimal
     cantidad: int
 
     class Config:
@@ -241,6 +241,9 @@ class TrazabilidadResponse(TrazabilidadBase):
 class CheckinBase(BaseModel):
     documento_identidad: str = Field(..., min_length=1, max_length=10, pattern=r"^[0-9]+$", description="Número de documento del asistente")
 
+class CheckinCreate(CheckinBase):
+    pass
+
 #DTO - Rules para Cotización
 class CotizacionServicioResponse(BaseModel):
     nombre_servicio: str
@@ -265,5 +268,5 @@ class AsistenciaResumenResponse(BaseModel):
     tasa_asistencia: Optional[Decimal] = None
 
 class EventoDetalleResponse(BaseModel):
-    servicios: list[ServiciosEventoResponse] = []
+    servicios: list[ServiciosEventoResponse] = Field(default_factory=list)
     asistencia: AsistenciaResumenResponse
