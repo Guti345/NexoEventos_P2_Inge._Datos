@@ -234,6 +234,8 @@ class TrazabilidadResponse(TrazabilidadBase):
     class Config:
         from_attributes = True
 
+class TrazabilidadCreate(TrazabilidadBase):
+    pass
 
 ##DTOs - Diferentes de las tablas generadas
 
