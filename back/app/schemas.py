@@ -17,7 +17,7 @@ class ClienteBase(BaseModel):
     tipo_documento: TipoDocumento = Field(..., description="Tipo de documento del cliente (CC o NIT)")
     numero_documento: str = Field(..., min_length=1, max_length=10, pattern=r"^[0-9]+$", description="Número de documento del cliente")
     nombre: str = Field(..., min_length=1, max_length=60, description="Nombre del cliente")
-    correo: EmailStr = Field(..., description="Correo electrónico del cliente")
+    email: EmailStr = Field(..., description="email electrónico del cliente")
     telefono: str = Field(..., min_length=7, max_length=10, pattern=r"^[0-9]+$", description="Número de teléfono del cliente")
 
 class ClienteCreate(ClienteBase):
@@ -27,7 +27,7 @@ class ClienteUpdate(BaseModel):
     tipo_documento: Optional[TipoDocumento] = None
     numero_documento: Optional[str] = Field(None, min_length=1, max_length=10, pattern=r"^[0-9]+$", description="Número de documento del cliente")
     nombre: Optional[str] = Field(None, min_length=1, max_length=60, description="Nombre del cliente")
-    correo: Optional[EmailStr] = None
+    email: Optional[EmailStr] = None
     telefono: Optional[str] = Field(None, min_length=7, max_length=10, pattern=r"^[0-9]+$", description="Número de teléfono del cliente")
 
 class ClienteResponse(ClienteBase):
@@ -64,7 +64,8 @@ class StaffBase(BaseModel):
     nombre: str = Field(..., min_length=2, max_length=100, description="Nombre del staff")
     cargo: CargoStaff = Field(..., description="Cargo del staff (Director, Gerente, Jefe, Coordinador, Auxiliar o Técnico)")
     area: AreaStaff = Field(..., description="Área del staff (Dirección, Operaciones, Comercial, Logística, Alimentos y Bebidas, Audiovisuales)")
-    correo: EmailStr = Field(..., description="Correo electrónico del staff")
+    email: EmailStr = Field(..., description="email electrónico del staff")
+    telefono: str = Field(..., min_length=7, max_length=10, pattern=r"^[0-9]+$", description="Número de teléfono del staff")
     fecha_ingreso: date = Field(..., description="Fecha de ingreso del staff")
     jefe_id: Optional[int] = Field(None, gt=0, description="ID del jefe del staff (si aplica)")
 
@@ -81,7 +82,8 @@ class StaffUpdate(BaseModel):
     nombre: Optional[str] = Field(None, min_length=2, max_length=100, description="Nombre del staff")
     cargo: Optional[CargoStaff] = None
     area: Optional[AreaStaff] = None
-    correo: Optional[EmailStr] = None
+    email: Optional[EmailStr] = None
+    telefono: Optional[str] = None
     fecha_ingreso: Optional[date] = None
     jefe_id: Optional[int] = Field(None, gt=0, description="ID del jefe del staff (si aplica)")
 
@@ -182,7 +184,7 @@ class ServiciosEventoResponse(ServiciosEventoBase):
 class AsistenteBase(BaseModel):
     documento_identidad: str = Field(..., min_length=1, max_length=10, pattern=r"^[0-9]+$", description="Número de documento del asistente")
     nombre: str = Field(..., min_length=2, max_length=60, description="Nombre del asistente")
-    correo: EmailStr = Field(..., description="Correo electrónico del asistente")
+    email: EmailStr = Field(..., description="email electrónico del asistente")
     empresa: str = Field(..., min_length=1, max_length=100, description="Empresa del asistente")
 
 
@@ -192,7 +194,7 @@ class AsistenteCreate(AsistenteBase):
 class AsistenteUpdate(BaseModel):
     documento_identidad: Optional[str] = Field(None, min_length=1, max_length=10, pattern=r"^[0-9]+$", description="Número de documento del asistente")
     nombre: Optional[str] = Field(None, min_length=2, max_length=60, description="Nombre del asistente")
-    correo: Optional[EmailStr] = None
+    email: Optional[EmailStr] = None
     empresa: Optional[str] = Field(None, min_length=1, max_length=100, description="Empresa del asistente")
 
 class AsistenteResponse(AsistenteBase):
