@@ -1,17 +1,30 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from typing import List
+from sqlalchemy import or_
+from typing import List, Optional
 
 from app.database import get_db
 from app.models import ClientesEntity
-from app.schemas import ClienteCreate, ClienteResponse
+from app.schemas import ClienteCreate, ClienteUpdate, ClienteResponse
 
 router = APIRouter()
 
 
 @router.get("/", response_model=List[ClienteResponse])
-def listar_clientes(db: Session = Depends(get_db)):
-    return db.query(ClientesEntity).all()
+def listar_clientes(buscar: Optional[str] = Query(None), tipo_documento: Optional[str] = Query(None), db: Session = Depends(get_db)):
+    query = db.query(ClientesEntity)
+    #busqueda general
+    if buscar:
+        query = query.filter(or_(
+            ClientesEntity.nombre.ilike(f"%{buscar}%"),
+            ClientesEntity.numero_documento.ilike(f"%{buscar}%"),
+            ClientesEntity.email.ilike(f"%{buscar}%")
+        ))
+    #filtro especifico por tipo de documento
+    if tipo_documento:
+        query = query.filter(ClientesEntity.tipo_documento == tipo_documento)
+
+    return query.all()
 
 
 @router.get("/{cliente_id}", response_model=ClienteResponse)
@@ -32,7 +45,7 @@ def crear_cliente(cliente: ClienteCreate, db: Session = Depends(get_db)):
 
 
 @router.put("/{cliente_id}", response_model=ClienteResponse)
-def actualizar_cliente(cliente_id: int, datos: ClienteCreate, db: Session = Depends(get_db)):
+def actualizar_cliente(cliente_id: int, datos: ClienteUpdate, db: Session = Depends(get_db)):
     cliente = db.query(ClientesEntity).filter(ClientesEntity.id == cliente_id).first()
     if not cliente:
         raise HTTPException(status_code=404, detail="Cliente no encontrado")
