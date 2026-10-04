@@ -27,7 +27,7 @@ RETURNS TABLE (staff_id INTEGER, nombre VARCHAR, cargo VARCHAR, area VARCHAR, je
         UNION ALL
 
         -- Miembro recursivo: subordinados directos del nivel anterior.
-        SELECT s.id, s.nombre, s.cargo, s.area, s.jefe_id, o.nivel + 1, o.ruta || ' > ' || s.nombre, o.visitados || s.id
+        SELECT s.id, s.nombre, s.cargo, s.area, s.jefe_id, o.nivel + 1, o.ruta || ' > ' || s.nombre || ' (' || s.cargo || ')', o.visitados || s.id
         FROM staff s JOIN org o ON s.jefe_id = o.id
         WHERE NOT s.id = ANY(o.visitados)
     )
