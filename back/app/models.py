@@ -41,7 +41,7 @@ class EventosEntity(Base):
         CheckConstraint("aforo_esperado > 0", name='check_aforo_esperado_positivo'),
         CheckConstraint("estado IN ('Cotizado', 'Confirmado', 'Finalizado', 'Cancelado')", name='check_estado_evento_valido'),
         CheckConstraint("tipo IN ('Congreso', 'Conferencia', 'Taller', 'Feria', 'Seminario', 'Exposición', 'Corporativo', 'Social', 'Otro')", name='check_tipo_evento_valido'),
-        CheckConstraint("precio_unidad_cotizado >= 0", name='check_precio_no_negativo'),
+        CheckConstraint("precio_hora_salon_cotizado >= 0", name='check_precio_no_negativo'),
         CheckConstraint("valor_total_cotizado >= 0", name='check_valor_total_no_negativo'),
         CheckConstraint("tasa_asistencia >= 0 AND tasa_asistencia <= 100", name='check_tasa_asistencia_valida')
     )
@@ -63,6 +63,7 @@ class EventosEntity(Base):
     valor_total_cotizado = Column(Numeric(12, 2), nullable=False)
     inscripciones = relationship("InscripcionesEntity", back_populates="evento")
     trazabilidad = relationship("TrazabilidadEntity", back_populates="evento")
+    servicios_eventos = relationship("ServiciosEventosEntity", back_populates="evento")
 
 class ServiciosEntity(Base):
     __tablename__ = "servicios"
@@ -91,7 +92,6 @@ class ServiciosEventosEntity(Base):
     servicio = relationship("ServiciosEntity", back_populates="servicios_eventos")
     cantidad = Column(Integer, nullable=False)
     precio_unidad_cotizado = Column(Numeric(12, 2), nullable=False)
-    servicios_eventos = relationship("ServiciosEventosEntity", back_populates="evento")
 
 class AsistentesEntity(Base):
     __tablename__ = "asistentes"
@@ -116,13 +116,12 @@ class InscripcionesEntity(Base):
     fecha_checkin = Column(DateTime, nullable=True)
     asistente_id = Column(Integer, ForeignKey("asistentes.id"), nullable=False)
     evento_id = Column(Integer, ForeignKey("eventos.id"), nullable=False)
-    asistente = relationship("AsistentesEntity", back_populates="incripciones")
-    evento = relationship("EventosEntity", back_populates="incripciones")
+    asistente = relationship("AsistentesEntity", back_populates="inscripciones")
+    evento = relationship("EventosEntity", back_populates="inscripciones")
 
 class StaffEntity(Base):
     __tablename__ = "staff"
     __table_args__ = (
-        CheckConstraint("LENGTH(telefono) <= 10 AND telefono ~ '^[0-9]+$'", name='check_telefono_valido'),
         CheckConstraint("email ~ '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$'", name='check_email_valido'),
         CheckConstraint("area IN ('Dirección', 'Operaciones', 'Comercial', 'Logística', 'Alimentos y Bebidas', 'Audiovisuales')", name='check_area_valida'),
         CheckConstraint("cargo IN ('Director', 'Gerente', 'Jefe', 'Coordinador', 'Auxiliar', 'Técnico')", name='check_cargo_valido'),

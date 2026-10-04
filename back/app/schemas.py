@@ -80,7 +80,7 @@ class StaffCreate(StaffBase):
         return self
 
 class StaffUpdate(BaseModel):
-    nombre: Optional[str] = Field(None, min_length=2, max_length=100, description="Nombre del staff")
+    nombre: Optional[str] = Field(None, min_length=2, max_length=60, description="Nombre del staff")
     cargo: Optional[CargoStaff] = None
     area: Optional[AreaStaff] = None
     email: Optional[EmailStr] = None
@@ -234,9 +234,6 @@ class TrazabilidadResponse(TrazabilidadBase):
     class Config:
         from_attributes = True
 
-class TrazabilidadCreate(TrazabilidadBase):
-    pass
-
 ##DTOs - Diferentes de las tablas generadas
 
 #DTO - Rules para Checkin
@@ -270,5 +267,5 @@ class AsistenciaResumenResponse(BaseModel):
     tasa_asistencia: Optional[Decimal] = None
 
 class EventoDetalleResponse(BaseModel):
-    servicios: list[ServiciosEventoResponse] = Field(default_factory=list)
+    servicios: list[ServicioEventoResponse] = Field(default_factory=list)
     asistencia: AsistenciaResumenResponse
