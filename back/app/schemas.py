@@ -166,7 +166,11 @@ class ServicioEventoCreate(ServicioEventoBase):
     pass
 
 class ServicioEventoUpdate(BaseModel):
+    servicio_id: Optional[int] = Field(None, gt=0, description="ID del servicio")
     cantidad: Optional[int] = Field(None, gt=0, description="Cantidad del servicio")
+
+class ServicioEventoDelete(BaseModel):
+    servicio_id: int = Field(..., gt=0, description="ID del servicio a eliminar del evento")
 
 class ServicioEventoResponse(ServicioEventoBase):
     id: int
