@@ -174,7 +174,7 @@ class ServicioEventoResponse(ServicioEventoBase):
     id: int
     evento_id: int
     servicio_id: int
-    precio_hora_salon_cotizado: Decimal
+    precio_unidad_cotizado: Decimal
     cantidad: int
 
     class Config:
