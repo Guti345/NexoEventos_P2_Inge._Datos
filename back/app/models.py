@@ -92,6 +92,7 @@ class ServiciosEventosEntity(Base):
     servicio = relationship("ServiciosEntity", back_populates="servicios_eventos")
     cantidad = Column(Integer, nullable=False)
     precio_unidad_cotizado = Column(Numeric(12, 2), nullable=False)
+    cantidad_manual = Column(Boolean, nullable=False, default=False)
 
 class AsistentesEntity(Base):
     __tablename__ = "asistentes"

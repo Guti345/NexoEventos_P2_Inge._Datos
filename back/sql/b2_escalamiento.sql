@@ -15,56 +15,22 @@
 DROP FUNCTION IF EXISTS fn_cadena_escalamiento(INTEGER);
 
 CREATE FUNCTION fn_cadena_escalamiento(p_staff_id INTEGER)
-RETURNS TABLE (
-    orden INTEGER,
-    staff_id INTEGER,
-    nombre VARCHAR,
-    cargo VARCHAR,
-    area VARCHAR,
-    email VARCHAR
-) AS $$
+RETURNS TABLE (orden INTEGER, staff_id INTEGER, nombre VARCHAR, cargo VARCHAR, area VARCHAR, email VARCHAR) AS $$
     WITH RECURSIVE cadena AS (
         -- Ancla: quien reporta el incidente.
-        SELECT
-            s.id,
-            s.nombre,
-            s.cargo,
-            s.area,
-            s.email,
-            s.jefe_id,
-            0 AS orden,
-            ARRAY[s.id] AS visitados
+        SELECT s.id, s.nombre, s.cargo, s.area, s.email, s.jefe_id, 0 AS orden, ARRAY[s.id] AS visitados
         FROM staff s
         WHERE s.id = p_staff_id
 
         UNION ALL
 
         -- Recursivo: jefe inmediato, luego el jefe del jefe, etc.
-        SELECT
-            s.id,
-            s.nombre,
-            s.cargo,
-            s.area,
-            s.email,
-            s.jefe_id,
-            c.orden + 1,
-            c.visitados || s.id
-        FROM staff s
-        JOIN cadena c ON s.id = c.jefe_id
+        SELECT s.id, s.nombre, s.cargo, s.area, s.email, s.jefe_id, c.orden + 1, c.visitados || s.id
+        FROM staff s JOIN cadena c ON s.id = c.jefe_id
         WHERE NOT s.id = ANY(c.visitados)
     )
-    SELECT
-        orden,
-        id,
-        nombre,
-        cargo,
-        area,
-        email
-    FROM cadena
-    WHERE orden > 0
-    ORDER BY orden;
+    SELECT orden, id, nombre, cargo, area, email FROM cadena WHERE orden > 0 ORDER BY orden;
 $$ LANGUAGE sql;
 
-'''-- prueba:
-SELECT * FROM fn_cadena_escalamiento(18);
-'''
+-- prueba:
+-- SELECT * FROM fn_cadena_escalamiento(18);

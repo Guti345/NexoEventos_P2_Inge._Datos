@@ -18,44 +18,19 @@
 
 DROP FUNCTION IF EXISTS fn_salones_disponibles(TIMESTAMP, TIMESTAMP, INTEGER);
 
-CREATE FUNCTION fn_salones_disponibles(
-    fecha_inicio TIMESTAMP,
-    fecha_fin TIMESTAMP,
-    personas INTEGER
-)
-RETURNS TABLE (
-    salon_id INTEGER,
-    nombre_salon VARCHAR,
-    tamano VARCHAR,
-    capacidad INTEGER,
-    precio_hora NUMERIC,
-    costo_estimado NUMERIC
-) AS $$
-    SELECT
-        s.id,
-        s.nombre_salon,
-        s.tamano,
-        s.capacidad,
-        s.precio_hora,
-        CEIL(EXTRACT(EPOCH FROM (fecha_fin - fecha_inicio)) / 3600) * s.precio_hora
+CREATE FUNCTION fn_salones_disponibles(fecha_inicio TIMESTAMP, fecha_fin TIMESTAMP, personas INTEGER)
+RETURNS TABLE (salon_id INTEGER, nombre_salon VARCHAR, tamano VARCHAR, capacidad INTEGER, precio_hora NUMERIC, costo_estimado NUMERIC) AS $$
+    SELECT s.id, s.nombre_salon, s.tamano, s.capacidad, s.precio_hora,
+           CEIL(EXTRACT(EPOCH FROM (fecha_fin - fecha_inicio)) / 3600) * s.precio_hora
     FROM salones s
-    WHERE s.habilitado = TRUE
-      AND s.capacidad >= personas
+    WHERE s.habilitado = TRUE AND s.capacidad >= personas
       AND NOT EXISTS (
-          SELECT 1
-          FROM eventos e
-          WHERE e.salon_id = s.id
-            AND e.estado <> 'Cancelado'
-            AND e.inicio < fecha_fin + INTERVAL '1 hour'
-            AND e.fin + INTERVAL '1 hour' > fecha_inicio
+          SELECT 1 FROM eventos e
+          WHERE e.salon_id = s.id AND e.estado <> 'Cancelado'
+            AND e.inicio < fecha_fin + INTERVAL '1 hour' AND e.fin + INTERVAL '1 hour' > fecha_inicio
       )
     ORDER BY s.capacidad;
 $$ LANGUAGE sql;
 
-'''-- prueba:
-SELECT *
-FROM fn_salones_disponibles(
-    '2026-11-18 09:00',
-    '2026-11-18 11:00',
-    50
-);'''
+-- prueba:
+-- SELECT * FROM fn_salones_disponibles('2026-11-18 09:00', '2026-11-18 11:00', 50);
