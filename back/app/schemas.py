@@ -61,7 +61,7 @@ class SalonResponse(SalonBase):
 
 #DTO - Rules para Staff
 class StaffBase(BaseModel):
-    nombre: str = Field(..., min_length=2, max_length=100, description="Nombre del staff")
+    nombre: str = Field(..., min_length=2, max_length=60, description="Nombre del staff")
     cargo: CargoStaff = Field(..., description="Cargo del staff (Director, Gerente, Jefe, Coordinador, Auxiliar o Técnico)")
     area: AreaStaff = Field(..., description="Área del staff (Dirección, Operaciones, Comercial, Logística, Alimentos y Bebidas, Audiovisuales)")
     email: EmailStr = Field(..., description="email electrónico del staff")
@@ -267,3 +267,12 @@ class AsistenciaResumenResponse(BaseModel):
 class EventoDetalleResponse(BaseModel):
     servicios: list[ServicioEventoResponse] = Field(default_factory=list)
     asistencia: AsistenciaResumenResponse
+
+#DTO - Rules para Salon Disponible
+class SalonDisponibleResponse(BaseModel):
+    salon_id: int
+    nombre_salon: str
+    tamano: TamanoSalon
+    capacidad: int
+    precio_hora: Decimal
+    costo_estimado: Decimal
