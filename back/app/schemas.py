@@ -52,8 +52,6 @@ class SalonUpdate(BaseModel):
     tamano: Optional[TamanoSalon] = None
     capacidad: Optional[int] = Field(None, gt=0, description="Capacidad del salón")
     precio_hora: Optional[Decimal] = Field(None, ge=0, max_digits=12, decimal_places=2, description="Precio por hora del salón")
-    habilitado: Optional[bool] = None
-
 class SalonResponse(SalonBase):
     id: int
     habilitado: bool
