@@ -11,7 +11,7 @@ class ClientesEntity(Base):
         CheckConstraint("LENGTH(numero_documento) <= 10 AND numero_documento ~ '^[0-9]+$'", name='check_numero_documento_positivo'),
     )
     id = Column(Integer, primary_key=True, index=True)
-    tipo_documento = Column(String(2), nullable=False)
+    tipo_documento = Column(String(3), nullable=False)
     numero_documento = Column(String(10), nullable=False, unique=True)
     nombre = Column(String(60), nullable=False)
     email = Column(String(100), nullable=False)
