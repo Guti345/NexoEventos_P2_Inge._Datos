@@ -137,7 +137,7 @@ class EventoEstadoUpdate(BaseModel):
 
 #DTO - Rules para Servicios
 class ServicioBase(BaseModel):
-    nombre_servicio: str = Field(..., min_length=1, max_length=30, description="Nombre del servicio")
+    nombre_servicio: str = Field(..., min_length=1, max_length=100, description="Nombre del servicio")
     descripcion: str = Field(..., min_length=1, max_length=200, description="Descripción del servicio")
     unidad_cobro: UnidadCobro = Field(..., description="Unidad de cobro del servicio (Hora, Unidad o Persona)")
     precio: Decimal = Field(..., ge=0, max_digits=12, decimal_places=2, description="Precio del servicio")
@@ -146,7 +146,7 @@ class ServicioCreate(ServicioBase):
     pass
 
 class ServicioUpdate(BaseModel):
-    nombre_servicio: Optional[str] = Field(None, min_length=1, max_length=30, description="Nombre del servicio")
+    nombre_servicio: Optional[str] = Field(None, min_length=1, max_length=100, description="Nombre del servicio")
     descripcion: Optional[str] = Field(None, min_length=1, max_length=200, description="Descripción del servicio")
     unidad_cobro: Optional[UnidadCobro] = None
     precio: Optional[Decimal] = Field(None, ge=0, max_digits=12, decimal_places=2, description="Precio del servicio")

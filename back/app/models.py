@@ -72,7 +72,7 @@ class ServiciosEntity(Base):
         CheckConstraint("unidad_cobro IN ('Hora', 'Unidad', 'Persona')", name='check_unidad_cobro_valida'),
     )
     id = Column(Integer, primary_key=True, index=True)
-    nombre_servicio = Column(String(30), nullable=False)
+    nombre_servicio = Column(String(100), nullable=False)
     descripcion = Column(String(200), nullable=False)
     unidad_cobro = Column(String(20), nullable=False)
     precio = Column(Numeric(12, 2), nullable=False)
