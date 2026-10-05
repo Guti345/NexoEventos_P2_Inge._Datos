@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy import or_
 from typing import List, Optional
 
@@ -48,9 +49,14 @@ def obtener_eventos_cliente(cliente_id: int, db: Session = Depends(get_db)):
 def crear_cliente(cliente: ClienteCreate, db: Session = Depends(get_db)):
     nuevo = ClientesEntity(**cliente.model_dump())
     db.add(nuevo)
-    db.commit()
-    db.refresh(nuevo)
-    return nuevo
+    try:
+        db.add(nuevo)
+        db.commit()
+        db.refresh(nuevo)
+        return nuevo
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=409, detail="Ya existe un cliente con ese número de documento.")
 
 
 @router.put("/{cliente_id}", response_model=ClienteResponse)
