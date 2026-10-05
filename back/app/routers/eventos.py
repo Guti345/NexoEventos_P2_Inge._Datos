@@ -5,7 +5,7 @@ from math import ceil
 from decimal import Decimal
 
 from app.database import get_db
-from app.models import EventosEntity, IncripcionesEntity
+from app.models import EventosEntity, InscripcionesEntity
 from app.schemas import EventoCreate, EventoResponse, EventoUpdate, EventoEstadoUpdate, EventoDetalleResponse, ServicioEventoResponse, AsistenciaResumenResponse, CotizacionResponse, CotizacionServicioResponse
 
 router = APIRouter()
