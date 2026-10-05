@@ -8,7 +8,7 @@ class ClientesEntity(Base):
         CheckConstraint("tipo_documento IN ('CC', 'NIT')", name='check_tipo_documento'),
         CheckConstraint("email ~ '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$'", name='check_email_valido'),
         CheckConstraint("LENGTH(telefono) <= 10 AND telefono ~ '^[0-9]+$'", name='check_telefono_valido'),
-        CheckConstraint("LENGTH(numero_documento) <= 10 AND numero_documento ~ '^[0-9]+$'", name='check_numero_documento_positivo')
+        CheckConstraint("LENGTH(numero_documento) <= 10 AND numero_documento ~ '^[0-9]+$'", name='check_numero_documento_positivo'),
     )
     id = Column(Integer, primary_key=True, index=True)
     tipo_documento = Column(String(2), nullable=False)
@@ -24,7 +24,7 @@ class SalonesEntity(Base):
     __table_args__ = (
         CheckConstraint("tamano IN ('Pequeño', 'Mediano', 'Grande')", name='check_tamaño_valido'),
         CheckConstraint("capacidad > 0", name='check_capacidad_positiva'),
-        CheckConstraint("precio_hora >= 0", name='check_precio_hora_no_negativo')
+        CheckConstraint("precio_hora >= 0", name='check_precio_hora_no_negativo'),
     )
     id = Column(Integer, primary_key=True, index=True)
     nombre_salon = Column(String(40), nullable=False)
@@ -43,7 +43,7 @@ class EventosEntity(Base):
         CheckConstraint("tipo IN ('Congreso', 'Conferencia', 'Taller', 'Feria', 'Seminario', 'Exposición', 'Corporativo', 'Social', 'Otro')", name='check_tipo_evento_valido'),
         CheckConstraint("precio_hora_salon_cotizado >= 0", name='check_precio_no_negativo'),
         CheckConstraint("valor_total_cotizado >= 0", name='check_valor_total_no_negativo'),
-        CheckConstraint("tasa_asistencia >= 0 AND tasa_asistencia <= 100", name='check_tasa_asistencia_valida')
+        CheckConstraint("tasa_asistencia >= 0 AND tasa_asistencia <= 100", name='check_tasa_asistencia_valida'),
     )
     id = Column(Integer, primary_key=True, index=True)
     nombre = Column(String(100), nullable=False)
@@ -69,7 +69,7 @@ class ServiciosEntity(Base):
     __tablename__ = "servicios"
     __table_args__ = (
         CheckConstraint("precio >= 0", name='check_precio_no_negativo'),
-        CheckConstraint("unidad_cobro IN ('Hora', 'Unidad', 'Persona')", name='check_unidad_cobro_valida')
+        CheckConstraint("unidad_cobro IN ('Hora', 'Unidad', 'Persona')", name='check_unidad_cobro_valida'),
     )
     id = Column(Integer, primary_key=True, index=True)
     nombre_servicio = Column(String(30), nullable=False)
@@ -82,7 +82,7 @@ class ServiciosEventosEntity(Base):
     __table_args__ = (
             CheckConstraint("precio_unidad_cotizado >= 0", name='check_precio_no_negativo'),
             CheckConstraint("cantidad > 0", name='check_cantidad_positiva'),
-            UniqueConstraint("evento_id", "servicio_id", name="unique_evento_servicio")
+            UniqueConstraint("evento_id", "servicio_id", name="unique_evento_servicio"),
         )
     __tablename__ = "servicios_eventos"
     id = Column(Integer, primary_key=True, index=True)
@@ -98,7 +98,7 @@ class AsistentesEntity(Base):
     __tablename__ = "asistentes"
     __table_args__ = (
         CheckConstraint("LENGTH(documento_identidad) <= 10 AND documento_identidad ~ '^[0-9]+$'", name='check_documento_identidad_positivo'),
-        CheckConstraint("email ~ '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$'", name='check_email_valido')
+        CheckConstraint("email ~ '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$'", name='check_email_valido'),
     )
     id = Column(Integer, primary_key=True, index=True)
     nombre = Column(String(60), nullable=False)
@@ -111,7 +111,7 @@ class InscripcionesEntity(Base):
     __tablename__ = "inscripciones"
     __table_args__ = (
         CheckConstraint("fecha_checkin <= NOW()", name='check_fecha_checkin_no_futura'),
-        UniqueConstraint("asistente_id", "evento_id", name="unique_asistente_evento")
+        UniqueConstraint("asistente_id", "evento_id", name="unique_asistente_evento"),
     )
     id = Column(Integer, primary_key=True, index=True)
     fecha_checkin = Column(DateTime, nullable=True)
@@ -127,7 +127,7 @@ class StaffEntity(Base):
         CheckConstraint("area IN ('Dirección', 'Operaciones', 'Comercial', 'Logística', 'Alimentos y Bebidas', 'Audiovisuales')", name='check_area_valida'),
         CheckConstraint("cargo IN ('Director', 'Gerente', 'Jefe', 'Coordinador', 'Auxiliar', 'Técnico')", name='check_cargo_valido'),
         CheckConstraint("jefe_id IS NULL OR jefe_id <> id", name='check_jefe_no_autoreferencia'),
-        CheckConstraint("(cargo='Director' AND jefe_id IS NULL) OR (cargo<>'Director' AND jefe_id IS NOT NULL)", name='check_jefe_segun_cargo')
+        CheckConstraint("(cargo='Director' AND jefe_id IS NULL) OR (cargo<>'Director' AND jefe_id IS NOT NULL)", name='check_jefe_segun_cargo'),
     )
     id = Column(Integer, primary_key=True, index=True)
     nombre = Column(String(60), nullable=False)
@@ -143,7 +143,7 @@ class StaffEntity(Base):
 class TrazabilidadEntity(Base):
     __tablename__ = "trazabilidad"
     __table_args__ = (
-        CheckConstraint("campo_modificado IN ('estado', 'salon_id', 'inicio', 'fin')", name='check_campo_auditado')
+        CheckConstraint("campo_modificado IN ('estado', 'salon_id', 'inicio', 'fin')", name='check_campo_auditado'),
     )
     id = Column(Integer, primary_key=True, index=True)
     evento_id = Column(Integer, ForeignKey("eventos.id"), nullable=False)
