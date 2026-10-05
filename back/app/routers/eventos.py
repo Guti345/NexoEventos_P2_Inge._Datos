@@ -64,8 +64,8 @@ def obtener_evento(evento_id: int, db: Session = Depends(get_db)):
     evento = db.query(EventosEntity).filter(EventosEntity.id == evento_id).first()
     if not evento:
         raise HTTPException(status_code=404, detail="Evento no encontrado")
-    inscritos = db.query(IncripcionesEntity).filter(IncripcionesEntity.evento_id == evento_id).count()
-    asistentes_reales = db.query(IncripcionesEntity).filter(IncripcionesEntity.evento_id == evento_id, IncripcionesEntity.fecha_checkin.isnot(None)).count()
+    inscritos = db.query(InscripcionesEntity).filter(InscripcionesEntity.evento_id == evento_id).count()
+    asistentes_reales = db.query(InscripcionesEntity).filter(InscripcionesEntity.evento_id == evento_id, InscripcionesEntity.fecha_checkin.isnot(None)).count()
     asistencia = AsistenciaResumenResponse(inscritos=inscritos, asistentes_reales=asistentes_reales, tasa_asistecia=evento.tasa_asistencia)
     evento_data = EventoResponse.model_validate(evento).model_dump()
     return EventoDetalleResponse(**evento_data, servicios=[ServicioEventoResponse.model_validate(servicio) for servicio in evento.servicios_eventos], asistencia=asistencia)

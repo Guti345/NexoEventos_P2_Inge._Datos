@@ -268,7 +268,7 @@ class AsistenciaResumenResponse(BaseModel):
     asistentes_reales: int
     tasa_asistencia: Optional[Decimal] = None
 
-class EventoDetalleResponse(BaseModel):
+class EventoDetalleResponse(EventoResponse):
     servicios: list[ServicioEventoResponse] = Field(default_factory=list)
     asistencia: AsistenciaResumenResponse
 
