@@ -280,3 +280,48 @@ class SalonDisponibleResponse(BaseModel):
     capacidad: int
     precio_hora: Decimal
     costo_estimado: Decimal
+
+#DTOs - Reportes
+#DTO - B1 Organigrama
+class OrganigramaResponse(BaseModel):
+    staff_id: int
+    nombre: str
+    cargo: str
+    area: str
+    jefe_id: Optional[int] = None
+    nivel: int
+    ruta_mando: str
+    personas_a_cargo: int
+
+#DTO - B2 Cadena de escalamiento
+class EscalamientoResponse(BaseModel):
+    orden: int
+    staff_id: int
+    nombre: str
+    cargo: str
+    area: str
+    email: EmailStr
+
+#DTO - B3 Pareto clientes
+class ParetoClienteResponse(BaseModel):
+    cliente_id: int
+    cliente: str
+    eventos: int
+    total_facturado: Decimal
+    posicion: int
+    participacion: Decimal
+    acumulado: Decimal
+    segmento_pareto: str
+
+#DTO - B4 Ocupación de salones
+class OcupacionSalonResponse(BaseModel):
+    salon_id: int
+    salon: str
+    evento_id: int
+    evento: str
+    inicio: datetime
+    fin: datetime
+    numero_en_salon: int
+    evento_anterior: Optional[str] = None
+    dias_libres: Optional[Decimal] = None
+    horas_acumuladas: Decimal
