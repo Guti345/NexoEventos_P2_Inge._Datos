@@ -4,7 +4,7 @@ from typing import List
 
 from app.database import get_db
 from app.models import  StaffEntity
-from app.schemas import StaffCreate, StaffResponse
+from app.schemas import StaffCreate, StaffResponse, StaffUpdate
 
 router = APIRouter()
 
@@ -31,12 +31,12 @@ def crear_staff(staff: StaffCreate, db: Session = Depends(get_db)):
     return nuevo
 
 
-@router.put("/{staff_id}", response_model=StaffResponse)
-def actualizar_staff(staff_id: int, datos: StaffCreate, db: Session = Depends(get_db)):
+@router.patch("/{staff_id}", response_model=StaffResponse)
+def actualizar_staff(staff_id: int, datos: StaffUpdate, db: Session = Depends(get_db)):
     staff = db.query(StaffEntity).filter(StaffEntity.id == staff_id).first()
     if not staff:
         raise HTTPException(status_code=404, detail="Staff no encontrado")
-    for campo, valor in datos.model_dump().items():
+    for campo, valor in datos.model_dump(exclude_unset=True).items():
         setattr(staff, campo, valor)
     db.commit()
     db.refresh(staff)

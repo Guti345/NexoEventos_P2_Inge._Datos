@@ -3,50 +3,52 @@ from sqlalchemy.orm import Session
 from typing import List
 
 from app.database import get_db
-from app.models import ServiciosEventosEntity
-from app.schemas import ServiciosEventoCreate, ServiciosEventoResponse
+from app.models import EventosEntity, ServiciosEventosEntity
+from app.schemas import ServicioEventoCreate, ServicioEventoUpdate, ServicioEventoDelete, ServicioEventoResponse
 
 router = APIRouter()
 
 
-@router.get("/", response_model=List[ServiciosEventoResponse])
-def listar_servicios_eventos(db: Session = Depends(get_db)):
-    return db.query(ServiciosEventosEntity).all()
+@router.get("/eventos/{evento_id}/servicios", response_model=List[ServicioEventoResponse])
+def listar_servicios_evento(evento_id: int, db: Session = Depends(get_db)):
+    evento = db.query(EventosEntity).filter(EventosEntity.id == evento_id).first()
+    if not evento:
+        raise HTTPException(status_code=404, detail="Evento no encontrado")
+    return db.query(ServiciosEventosEntity).filter(ServiciosEventosEntity.evento_id == evento_id).all()
 
 
-@router.get("/{servicio_evento_id}", response_model=ServiciosEventoResponse)
-def obtener_servicio_evento(servicio_evento_id: int, db: Session = Depends(get_db)):
-    servicio_evento = db.query(ServiciosEventosEntity).filter(ServiciosEventosEntity.id == servicio_evento_id).first()
-    if not servicio_evento:
-        raise HTTPException(status_code=404, detail="Servicio-Evento no encontrado")
-    return servicio_evento
+@router.post("/eventos/{evento_id}/servicios", response_model=ServicioEventoResponse, status_code=201)
+def agregar_servicio_evento(evento_id: int, datos: ServicioEventoCreate, db: Session = Depends(get_db)):
+    evento = db.query(EventosEntity).filter(EventosEntity.id == evento_id).first()
+    if not evento:
+        raise HTTPException(status_code=404, detail="Evento no encontrado")
 
-
-@router.post("/", response_model=ServiciosEventoResponse, status_code=201)
-def crear_servicio_evento(servicio_evento: ServiciosEventoCreate, db: Session = Depends(get_db)):
-    nuevo = ServiciosEventosEntity(**servicio_evento.model_dump())
+    nuevo = ServiciosEventosEntity(evento_id=evento_id, **datos.model_dump())
     db.add(nuevo)
     db.commit()
     db.refresh(nuevo)
     return nuevo
 
 
-@router.put("/{servicio_evento_id}", response_model=ServiciosEventoResponse)
-def actualizar_servicio_evento(servicio_evento_id: int, datos: ServiciosEventoCreate, db: Session = Depends(get_db)):
-    servicio_evento = db.query(ServiciosEventosEntity).filter(ServiciosEventosEntity.id == servicio_evento_id).first()
+@router.put("/eventos/{evento_id}/servicios", response_model=ServicioEventoResponse)
+def actualizar_servicio_evento(evento_id: int, datos: ServicioEventoUpdate, db: Session = Depends(get_db)):
+    servicio_evento = db.query(ServiciosEventosEntity).filter(ServiciosEventosEntity.evento_id == evento_id, ServiciosEventosEntity.servicio_id == datos.servicio_id).first()
     if not servicio_evento:
-        raise HTTPException(status_code=404, detail="Servicio-Evento no encontrado")
-    for campo, valor in datos.model_dump().items():
+        raise HTTPException(status_code=404, detail="Servicio no encontrado en este evento")
+
+    for campo, valor in datos.model_dump(exclude_unset=True).items():
         setattr(servicio_evento, campo, valor)
+
     db.commit()
     db.refresh(servicio_evento)
     return servicio_evento
 
 
-@router.delete("/{servicio_evento_id}", status_code=204)
-def eliminar_servicio_evento(servicio_evento_id: int, db: Session = Depends(get_db)):
-    servicio_evento = db.query(ServiciosEventosEntity).filter(ServiciosEventosEntity.id == servicio_evento_id).first()
+@router.delete("/eventos/{evento_id}/servicios", status_code=204)
+def eliminar_servicio_evento(evento_id: int, datos: ServicioEventoDelete, db: Session = Depends(get_db)):
+    servicio_evento = db.query(ServiciosEventosEntity).filter(ServiciosEventosEntity.evento_id == evento_id, ServiciosEventosEntity.servicio_id == datos.servicio_id).first()
     if not servicio_evento:
-        raise HTTPException(status_code=404, detail="Servicio-Evento no encontrado")
+        raise HTTPException(status_code=404, detail="Servicio no encontrado en este evento")
+
     db.delete(servicio_evento)
     db.commit()

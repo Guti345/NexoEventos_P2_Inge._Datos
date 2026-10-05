@@ -4,7 +4,7 @@ from typing import List
 
 from app.database import get_db
 from app.models import ServiciosEntity
-from app.schemas import ServicioCreate, ServicioResponse
+from app.schemas import ServicioCreate, ServicioResponse, ServicioUpdate
 
 router = APIRouter()
 
@@ -31,12 +31,12 @@ def crear_servicio(servicio: ServicioCreate, db: Session = Depends(get_db)):
     return nuevo
 
 
-@router.put("/{servicio_id}", response_model=ServicioResponse)
-def actualizar_servicio(servicio_id: int, datos: ServicioCreate, db: Session = Depends(get_db)):
+@router.patch("/{servicio_id}", response_model=ServicioResponse)
+def actualizar_servicio(servicio_id: int, datos: ServicioUpdate, db: Session = Depends(get_db)):
     servicio = db.query(ServiciosEntity).filter(ServiciosEntity.id == servicio_id).first()
     if not servicio:
         raise HTTPException(status_code=404, detail="Servicio no encontrado")
-    for campo, valor in datos.model_dump().items():
+    for campo, valor in datos.model_dump(exclude_unset=True).items():
         setattr(servicio, campo, valor)
     db.commit()
     db.refresh(servicio)

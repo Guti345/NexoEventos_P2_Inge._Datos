@@ -4,8 +4,8 @@ from sqlalchemy import or_
 from typing import List, Optional
 
 from app.database import get_db
-from app.models import ClientesEntity
-from app.schemas import ClienteCreate, ClienteUpdate, ClienteResponse
+from app.models import ClientesEntity, EventosEntity
+from app.schemas import ClienteCreate, ClienteUpdate, ClienteResponse, EventoResponse
 
 router = APIRouter()
 
@@ -33,6 +33,15 @@ def obtener_cliente(cliente_id: int, db: Session = Depends(get_db)):
     if not cliente:
         raise HTTPException(status_code=404, detail="Cliente no encontrado")
     return cliente
+
+
+@router.get("/{cliente_id}/eventos", response_model=List[EventoResponse])
+def obtener_eventos_cliente(cliente_id: int, db: Session = Depends(get_db)):
+    cliente = db.query(ClientesEntity).filter(ClientesEntity.id == cliente_id).first()
+    if not cliente:
+        raise HTTPException(status_code=404, detail="Cliente no encontrado")
+
+    return db.query(EventosEntity).filter(EventosEntity.cliente_id == cliente_id).all()
 
 
 @router.post("/", response_model=ClienteResponse, status_code=201)

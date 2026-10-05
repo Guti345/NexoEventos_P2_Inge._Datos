@@ -4,7 +4,7 @@ from typing import List
 
 from app.database import get_db
 from app.models import  AsistentesEntity
-from app.schemas import AsistenteCreate, AsistenteResponse
+from app.schemas import AsistenteCreate, AsistenteResponse, AsistenteUpdate
 
 router = APIRouter()
 
@@ -31,12 +31,12 @@ def crear_asistente(asistente: AsistenteCreate, db: Session = Depends(get_db)):
     return nuevo
 
 
-@router.put("/{asistente_id}", response_model=AsistenteResponse)
-def actualizar_asistente(asistente_id: int, datos: AsistenteCreate, db: Session = Depends(get_db)):
+@router.patch("/{asistente_id}", response_model=AsistenteResponse)
+def actualizar_asistente(asistente_id: int, datos: AsistenteUpdate, db: Session = Depends(get_db)):
     asistente = db.query(AsistentesEntity).filter(AsistentesEntity.id == asistente_id).first()
     if not asistente:
         raise HTTPException(status_code=404, detail="Asistente no encontrado")
-    for campo, valor in datos.model_dump().items():
+    for campo, valor in datos.model_dump(exclude_unset=True).items():
         setattr(asistente, campo, valor)
     db.commit()
     db.refresh(asistente)
