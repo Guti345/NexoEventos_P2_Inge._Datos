@@ -80,7 +80,7 @@ def crear_evento(evento: EventoCreate, db: Session = Depends(get_db)):
     try:
         db.commit()
         db.refresh(nuevo)
-        return 
+        return nuevo
     
     except InternalError as exc:
         db.rollback()
