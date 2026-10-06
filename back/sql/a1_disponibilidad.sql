@@ -45,7 +45,7 @@ BEGIN
     IF NOT FOUND THEN RETURN NEW; END IF;
 
     IF NOT salon.habilitado THEN
-        RAISE EXCEPTION 'SALON INACTIVO: El salón "%" está deshabilitado temporalmente.', salon.nombre_salon;
+        RAISE EXCEPTION 'SALON INACTIVO: El salón "%" está deshabilitado temporalmente por mantenimiento.', salon.nombre_salon;
     END IF;
 
     IF NEW.aforo_esperado > salon.capacidad THEN
