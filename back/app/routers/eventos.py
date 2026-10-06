@@ -100,8 +100,14 @@ def actualizar_evento(evento_id: int, datos: EventoUpdate, db: Session = Depends
         raise HTTPException(status_code=404, detail="Evento no encontrado")
     for campo, valor in datos.model_dump(exclude_unset=True).items():
         setattr(evento, campo, valor)
-    db.commit()
-    db.refresh(evento)
+
+    try:
+        db.commit()
+        db.refresh(evento)
+    except InternalError as exc:
+        db.rollback()
+        mensaje=getattr(getattr(exc.orig, "diag", None), "message_primary", str(exc.orig).splitlines()[0])
+        raise HTTPException(status_code=409, detail=mensaje)
     return evento
 
 
