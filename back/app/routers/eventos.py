@@ -115,4 +115,20 @@ def actualizar_estado_evento(evento_id: int, datos: EventoEstadoUpdate, db: Sess
     db.refresh(evento)
     return evento
 
+@router.delete("/{evento_id}", status_code=204)
+def eliminar_evento(evento_id: int, db: Session = Depends(get_db)):
+
+    evento = db.query(EventosEntity).filter(
+        EventosEntity.id == evento_id
+    ).first()
+
+    if not evento:
+        raise HTTPException(
+            status_code=404,
+            detail="Evento no encontrado"
+        )
+
+    db.delete(evento)
+    db.commit()
+
 
