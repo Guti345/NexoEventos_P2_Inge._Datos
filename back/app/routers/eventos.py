@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 from math import ceil
 from decimal import Decimal
+from sqlalchemy.exc import InternalError
 
 from app.database import get_db
 from app.models import EventosEntity, InscripcionesEntity
@@ -75,9 +76,21 @@ def obtener_evento(evento_id: int, db: Session = Depends(get_db)):
 def crear_evento(evento: EventoCreate, db: Session = Depends(get_db)):
     nuevo = EventosEntity(**evento.model_dump())
     db.add(nuevo)
-    db.commit()
-    db.refresh(nuevo)
-    return nuevo
+
+    try:
+        db.commit()
+        db.refresh(nuevo)
+        return 
+    
+    except InternalError as exc:
+        db.rollback()
+        
+        mensaje = getattr(
+            getattr(exc.orig, "diag", None),
+            "mensaje_primary",
+            str(exc.orig).splitlines()[0]
+        )
+        raise HTTPException(status_code=409, detail=mensaje)
 
 
 @router.patch("/{evento_id}", response_model=EventoResponse)
