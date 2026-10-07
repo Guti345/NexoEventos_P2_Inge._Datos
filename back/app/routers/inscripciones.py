@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import InternalError, IntegrityError
 from sqlalchemy import func
 from typing import List
 
@@ -31,14 +32,31 @@ def obtener_inscripcion(evento_id: int, inscripcion_id: int, db: Session = Depen
 @router.post("/eventos/{evento_id}/inscripciones", response_model=InscripcionResponse, status_code=201)
 def crear_inscripcion(evento_id: int, datos: InscripcionCreate, db: Session = Depends(get_db)):
     evento = db.query(EventosEntity).filter(EventosEntity.id == evento_id).first()
+
     if not evento:
         raise HTTPException(status_code=404, detail="Evento no encontrado")
 
+    existente = db.query(InscripcionesEntity).filter(InscripcionesEntity.evento_id == evento_id, InscripcionesEntity.asistente_id == datos.asistente_id).first()
+
+    if existente:
+        raise HTTPException(status_code=409, detail="El asistente ya está inscrito en este evento")
+
     nueva = InscripcionesEntity(evento_id=evento_id, **datos.model_dump())
     db.add(nueva)
-    db.commit()
-    db.refresh(nueva)
-    return nueva
+
+    try:
+        db.commit()
+        db.refresh(nueva)
+        return nueva
+
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=409, detail="El asistente ya está inscrito en este evento")
+
+    except InternalError as exc:
+        db.rollback()
+        mensaje = getattr(getattr(exc.orig, "diag", None), "message_primary", str(exc.orig).splitlines()[0])
+        raise HTTPException(status_code=409, detail=mensaje)
 
 
 @router.delete("/eventos/{evento_id}/inscripciones/{inscripcion_id}", status_code=204)
