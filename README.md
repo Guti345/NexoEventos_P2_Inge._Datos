@@ -1,4 +1,4 @@
-# NexoEventos
+# Parcial - NexoEventos
 
 Proyecto integrador de la materia **Ingeniería de Datos** (Universidad del Rosario, Escuela de Ciencias e Ingeniería) — Parcial 2.
 
