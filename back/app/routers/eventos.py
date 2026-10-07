@@ -117,9 +117,15 @@ def actualizar_estado_evento(evento_id: int, datos: EventoEstadoUpdate, db: Sess
     if not evento:
         raise HTTPException(status_code=404, detail="Evento no encontrado")
     evento.estado = datos.estado
-    db.commit()
-    db.refresh(evento)
-    return evento
+    try:
+        db.commit()
+        db.refresh(evento)
+        return evento
+    
+    except InternalError as exc:
+            db.rollback()
+            mensaje = getattr(getattr(exc.orig, "diag", None), "message_primary", str(exc.orig).splitlines()[0])
+            raise HTTPException(status_code=409, detail=mensaje)
 
 @router.delete("/{evento_id}", status_code=204)
 def eliminar_evento(evento_id: int, db: Session = Depends(get_db)):

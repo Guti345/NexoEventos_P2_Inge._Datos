@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
+from sqlalchemy.exc import InternalError, IntegrityError
 
 from app.database import get_db
 from app.models import EventosEntity, ServiciosEventosEntity
@@ -17,6 +18,8 @@ def listar_servicios_evento(evento_id: int, db: Session = Depends(get_db)):
     return db.query(ServiciosEventosEntity).filter(ServiciosEventosEntity.evento_id == evento_id).all()
 
 
+from sqlalchemy.exc import InternalError, IntegrityError
+
 @router.post("/eventos/{evento_id}/servicios", response_model=ServicioEventoResponse, status_code=201)
 def agregar_servicio_evento(evento_id: int, datos: ServicioEventoCreate, db: Session = Depends(get_db)):
     evento = db.query(EventosEntity).filter(EventosEntity.id == evento_id).first()
@@ -24,10 +27,17 @@ def agregar_servicio_evento(evento_id: int, datos: ServicioEventoCreate, db: Ses
         raise HTTPException(status_code=404, detail="Evento no encontrado")
 
     nuevo = ServiciosEventosEntity(evento_id=evento_id, **datos.model_dump())
-    db.add(nuevo)
-    db.commit()
-    db.refresh(nuevo)
-    return nuevo
+
+    try:
+        db.add(nuevo)
+        db.commit()
+        db.refresh(nuevo)
+        return nuevo
+
+    except InternalError as exc:
+        db.rollback()
+        mensaje = getattr(getattr(exc.orig, "diag", None), "message_primary", str(exc.orig).splitlines()[0])
+        raise HTTPException(status_code=409, detail=mensaje)
 
 
 @router.put("/eventos/{evento_id}/servicios", response_model=ServicioEventoResponse)
