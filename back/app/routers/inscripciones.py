@@ -84,6 +84,12 @@ def registrar_checkin(evento_id: int, datos: CheckinCreate, db: Session = Depend
 
     inscripcion.fecha_checkin = func.now()
 
-    db.commit()
-    db.refresh(inscripcion)
-    return inscripcion
+    try:
+        db.commit()
+        db.refresh(inscripcion)
+        return inscripcion
+
+    except InternalError as exc:
+        db.rollback()
+        mensaje = getattr(getattr(exc.orig, "diag", None), "message_primary", str(exc.orig).splitlines()[0])
+        raise HTTPException(status_code=409, detail=mensaje)
