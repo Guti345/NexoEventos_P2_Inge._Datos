@@ -64,7 +64,7 @@ def actualizar_cliente(cliente_id: int, datos: ClienteUpdate, db: Session = Depe
     cliente = db.query(ClientesEntity).filter(ClientesEntity.id == cliente_id).first()
     if not cliente:
         raise HTTPException(status_code=404, detail="Cliente no encontrado")
-    for campo, valor in datos.model_dump().items():
+    for campo, valor in datos.model_dump(exclude_unset=True).items():
         setattr(cliente, campo, valor)
     db.commit()
     db.refresh(cliente)

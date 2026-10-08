@@ -20,9 +20,7 @@ def listar_salones_disponibles(fecha_inicio: datetime, fecha_fin: datetime, afor
     if fecha_fin <= fecha_inicio:
         raise HTTPException(status_code=422, detail="La fecha y hora de fin debe ser posterior al inicio")
 
-    consulta = text("""
-        select * from fn_salones_disponibles(:fecha_inicio, :fecha_fin, :aforo)
-    """)
+    consulta = text("""select * from fn_salones_disponibles(:fecha_inicio, :fecha_fin, :aforo)""")
 
     resultado = db.execute(consulta, {"fecha_inicio": fecha_inicio, "fecha_fin": fecha_fin, "aforo": aforo}).mappings().all()
 
@@ -51,7 +49,7 @@ def actualizar_salon(salon_id: int, datos: SalonUpdate, db: Session = Depends(ge
     salon = db.query(SalonesEntity).filter(SalonesEntity.id == salon_id).first()
     if not salon:
         raise HTTPException(status_code=404, detail="Salón no encontrado")
-    for campo, valor in datos.model_dump().items():
+    for campo, valor in datos.model_dump(exclude_unset=True).items():
         setattr(salon, campo, valor)
     db.commit()
     db.refresh(salon)

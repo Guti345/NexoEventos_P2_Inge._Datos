@@ -60,14 +60,14 @@ def obtener_cotizacion(evento_id: int, db: Session = Depends(get_db)):
     )
 
 
-@router.get("/{evento_id}", response_model=EventoResponse)
+@router.get("/{evento_id}", response_model=EventoDetalleResponse)
 def obtener_evento(evento_id: int, db: Session = Depends(get_db)):
     evento = db.query(EventosEntity).filter(EventosEntity.id == evento_id).first()
     if not evento:
         raise HTTPException(status_code=404, detail="Evento no encontrado")
     inscritos = db.query(InscripcionesEntity).filter(InscripcionesEntity.evento_id == evento_id).count()
     asistentes_reales = db.query(InscripcionesEntity).filter(InscripcionesEntity.evento_id == evento_id, InscripcionesEntity.fecha_checkin.isnot(None)).count()
-    asistencia = AsistenciaResumenResponse(inscritos=inscritos, asistentes_reales=asistentes_reales, tasa_asistecia=evento.tasa_asistencia)
+    asistencia = AsistenciaResumenResponse(inscritos=inscritos, asistentes_reales=asistentes_reales, tasa_asistencia=evento.tasa_asistencia)
     evento_data = EventoResponse.model_validate(evento).model_dump()
     return EventoDetalleResponse(**evento_data, servicios=[ServicioEventoResponse.model_validate(servicio) for servicio in evento.servicios_eventos], asistencia=asistencia)
 
@@ -87,7 +87,7 @@ def crear_evento(evento: EventoCreate, db: Session = Depends(get_db)):
         
         mensaje = getattr(
             getattr(exc.orig, "diag", None),
-            "mensaje_primary",
+            "message_primary",
             str(exc.orig).splitlines()[0]
         )
         raise HTTPException(status_code=409, detail=mensaje)
