@@ -1,325 +1,197 @@
+import os
+import sys
 from datetime import date, datetime, time, timedelta
 
 import pandas as pd
 import streamlit as st
+from pydantic import ValidationError
 
-import api_client as api
-import ui
+import api_client
 from api_client import ApiError
 
-ui.preparar_pagina()
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
+from back.app import schemas
 
-st.title("Eventos")
-ui.mostrar_flash()
+api_client.configurar_pagina("Eventos")
 
-salones_lista = ui.cargar(api.get_salones)
-servicios_lista = ui.cargar(api.get_servicios)
-clientes_lista = ui.cargar(api.get_clientes)
-staff_lista = ui.cargar(api.get_staff)
-
-salones = ui.mapa(salones_lista, "nombre_salon")
-servicios = {s["id"]: s for s in servicios_lista}
-clientes = ui.mapa(clientes_lista, "nombre")
-staff = {s["id"]: s for s in staff_lista}
+salones = {s["id"]: s["nombre_salon"] for s in api_client.cargar(api_client.get_salones)}
+servicios = {s["id"]: s["nombre_servicio"] for s in api_client.cargar(api_client.get_servicios)}
+clientes = {c["id"]: c["nombre"] for c in api_client.cargar(api_client.get_clientes)}
+staff = {s["id"]: f"{s['nombre']} ({s['cargo']})" for s in api_client.cargar(api_client.get_staff)}
 
 
-def selector_fecha_hora(etiqueta: str, valor: datetime, clave: str) -> datetime:
+def fecha_y_hora(etiqueta, valor, clave):
     c1, c2 = st.columns(2)
-    d = c1.date_input(f"{etiqueta} · fecha", value=valor.date(), key=f"{clave}_d", format="DD/MM/YYYY")
-    h = c2.time_input(f"{etiqueta} · hora", value=valor.time(), key=f"{clave}_h", step=timedelta(minutes=30))
-    return datetime.combine(d, h)
+    dia = c1.date_input(f"{etiqueta} - fecha", value=valor.date(), key=f"{clave}_dia")
+    hora = c2.time_input(f"{etiqueta} - hora", value=valor.time(), key=f"{clave}_hora")
+    return datetime.combine(dia, hora)
 
 
-tab_lista, tab_crear, tab_gestion = st.tabs(["Listado", "Crear evento", "Gestionar un evento"])
+tab_listar, tab_crear, tab_gestionar = st.tabs(["Listar", "Crear evento", "Gestionar evento"])
 
-# Listado
-with tab_lista:
-    f1, f2, f3 = st.columns(3)
-    estado = f1.selectbox("Estado", ["Todos"] + ui.ESTADOS)
-    cliente_f = f2.selectbox("Cliente", [None] + list(clientes), format_func=lambda i: "Todos" if i is None else clientes[i])
-    salon_f = f3.selectbox("Salón", [None] + list(salones), format_func=lambda i: "Todos" if i is None else salones[i])
-
-    eventos = ui.cargar(api.get_eventos, None if estado == "Todos" else estado, cliente_f, salon_f)
+# Listar
+with tab_listar:
+    estado = st.selectbox("Filtrar por estado", ["Todos"] + api_client.ESTADOS)
+    eventos = api_client.cargar(api_client.get_eventos, None if estado == "Todos" else estado)
     if eventos:
-        df = pd.DataFrame(eventos).sort_values("inicio")
-        st.dataframe(
-            pd.DataFrame({
-                "ID": df["id"],
-                "Evento": df["nombre"],
-                "Tipo": df["tipo"],
-                "Estado": df["estado"],
-                "Inicio": df["inicio"].map(ui.fecha_hora),
-                "Fin": df["fin"].map(ui.fecha_hora),
-                "Salón": df["salon_id"].map(salones),
-                "Cliente": df["cliente_id"].map(clientes),
-                "Aforo": df["aforo_esperado"],
-                "Valor total": df["valor_total_cotizado"].map(ui.dinero),
-                "Tasa asistencia": df["tasa_asistencia"].map(ui.porcentaje),
-            }),
-            hide_index=True,
-            width="stretch",
-        )
-        st.caption(f"{len(df)} evento(s)")
-    else:
-        st.info("No hay eventos con esos filtros.")
+        st.dataframe(pd.DataFrame([{
+            "ID": e["id"],
+            "Evento": e["nombre"],
+            "Estado": e["estado"],
+            "Inicio": api_client.fecha_hora(e["inicio"]),
+            "Fin": api_client.fecha_hora(e["fin"]),
+            "Salón": salones.get(e["salon_id"]),
+            "Cliente": clientes.get(e["cliente_id"]),
+            "Aforo": e["aforo_esperado"],
+            "Valor total": api_client.dinero(e["valor_total_cotizado"]),
+        } for e in eventos]), hide_index=True)
 
 # Crear evento
 with tab_crear:
-    st.markdown("**Paso 1.** Indique el horario y el aforo. Se consultan los salones libres con la función `fn_salones_disponibles` (A5).")
-    manana = datetime.combine(date.today() + timedelta(days=7), time(8, 0))
-    inicio = selector_fecha_hora("Inicio", manana, "nuevo_inicio")
-    fin = selector_fecha_hora("Fin", manana + timedelta(hours=4), "nuevo_fin")
-    aforo = st.number_input("Aforo esperado (personas)", min_value=1, value=50, step=10, key="nuevo_aforo")
+    st.write("Indique el horario y el aforo. Solo se muestran los salones disponibles (función A5).")
+    sugerido = datetime.combine(date.today() + timedelta(days=7), time(8, 0))
+    inicio = fecha_y_hora("Inicio", sugerido, "crear_inicio")
+    fin = fecha_y_hora("Fin", sugerido + timedelta(hours=4), "crear_fin")
+    aforo = st.number_input("Aforo esperado", min_value=1, value=50)
 
-    if st.button("Buscar salones disponibles", type="primary"):
-        try:
-            st.session_state["disp_crear"] = {
-                "clave": (inicio, fin, aforo),
-                "salones": api.get_salones_disponibles(inicio, fin, aforo),
-            }
-        except ApiError as e:
-            st.session_state.pop("disp_crear", None)
-            ui.mostrar_error(e)
-
-    busqueda = st.session_state.get("disp_crear")
-    if busqueda and busqueda["clave"] != (inicio, fin, aforo):
-        st.info("Cambió el horario o el aforo: vuelva a buscar salones disponibles.")
-    elif busqueda:
-        libres = busqueda["salones"]
-        if not libres:
-            st.warning("No hay salones disponibles para ese horario y aforo. Pruebe con otro horario.")
+    if fin <= inicio:
+        st.warning("La hora de fin debe ser posterior al inicio.")
+    else:
+        disponibles = api_client.cargar(api_client.get_salones_disponibles, inicio, fin, aforo)
+        if not disponibles:
+            st.warning("No hay salones disponibles para ese horario y aforo.")
         else:
-            st.markdown(f"**Paso 2.** {len(libres)} salón(es) disponible(s). Complete los datos del evento.")
-            with st.form("form_crear_evento"):
-                salon_id = st.radio(
-                    "Salón (solo se muestran los disponibles)",
-                    [s["salon_id"] for s in libres],
-                    format_func=lambda i: next(
-                        f"{s['nombre_salon']} · {s['tamano']} · cap. {s['capacidad']} · costo salón {ui.dinero(s['costo_estimado'])}"
-                        for s in libres if s["salon_id"] == i
-                    ),
-                )
-                nombre = st.text_input("Nombre del evento", max_chars=100)
-                c1, c2 = st.columns(2)
-                tipo = c1.selectbox("Tipo", ui.TIPOS_EVENTO)
-                cliente_id = c2.selectbox("Cliente", list(clientes), format_func=lambda i: clientes[i])
-                coordinadores = sorted(staff.values(), key=lambda s: (s["cargo"] != "Coordinador", s["nombre"]))
-                coordinador_id = st.selectbox(
-                    "Coordinador (staff)",
-                    [s["id"] for s in coordinadores],
-                    format_func=lambda i: f"{staff[i]['nombre']} — {staff[i]['cargo']} de {staff[i]['area']}",
-                )
-                if st.form_submit_button("Crear evento", type="primary"):
-                    payload = {
-                        "nombre": nombre.strip(), "tipo": tipo,
-                        "inicio": inicio.isoformat(), "fin": fin.isoformat(),
-                        "aforo_esperado": int(aforo), "salon_id": salon_id,
-                        "cliente_id": cliente_id, "coordinador_id": coordinador_id,
-                    }
+            opciones_salon = {s["salon_id"]: f"{s['nombre_salon']} (capacidad {s['capacidad']}, "
+                                             f"costo {api_client.dinero(s['costo_estimado'])})" for s in disponibles}
+            with st.form("crear_evento"):
+                salon_id = st.selectbox("Salón disponible", list(opciones_salon), format_func=opciones_salon.get)
+                nombre = st.text_input("Nombre del evento")
+                tipo = st.selectbox("Tipo", api_client.TIPOS_EVENTO)
+                cliente_id = st.selectbox("Cliente", list(clientes), format_func=clientes.get)
+                coordinador_id = st.selectbox("Coordinador", list(staff), format_func=staff.get)
+                if st.form_submit_button("Crear evento"):
                     try:
-                        nuevo = api.crear_evento(payload)
-                        st.session_state.pop("disp_crear", None)
-                        st.session_state["evento_sel"] = nuevo["id"]
-                        ui.exito(
-                            f"Evento #{nuevo['id']} «{nuevo['nombre']}» creado como **{nuevo['estado']}**. "
-                            f"Valor calculado por el trigger A3: **{ui.dinero(nuevo['valor_total_cotizado'])}**. "
-                            "Configure sus servicios en la pestaña «Gestionar un evento»."
+                        datos = schemas.EventoCreate(
+                            nombre=nombre, tipo=tipo, inicio=inicio, fin=fin, aforo_esperado=aforo,
+                            salon_id=salon_id, cliente_id=cliente_id, coordinador_id=coordinador_id,
                         )
+                        nuevo = api_client.crear_evento(datos.model_dump(mode="json"))
+                        api_client.exito(f"Evento {nuevo['id']} creado. Valor total: {api_client.dinero(nuevo['valor_total_cotizado'])}")
+                    except ValidationError as e:
+                        api_client.mostrar_validacion(e)
                     except ApiError as e:
-                        ui.mostrar_error(e)
+                        api_client.mostrar_error(e)
 
-# Gestionar un evento
-with tab_gestion:
-    todos = ui.cargar(api.get_eventos)
-    if not todos:
-        st.stop()
-    todos = sorted(todos, key=lambda e: e["id"], reverse=True)
-    ids = [e["id"] for e in todos]
-    por_id = {e["id"]: e for e in todos}
-    if st.session_state.get("evento_sel") not in ids:
-        st.session_state["evento_sel"] = ids[0]
-    evento_id = st.selectbox("Evento", ids, key="evento_sel", format_func=lambda i: ui.etiqueta_evento(por_id[i]))
+# Gestionar evento
+with tab_gestionar:
+    todos = sorted(api_client.cargar(api_client.get_eventos), key=lambda e: e["id"], reverse=True)
+    opciones_evento = {e["id"]: f"{e['id']} - {e['nombre']} ({e['estado']})" for e in todos}
+    evento_id = st.selectbox("Evento", list(opciones_evento), format_func=opciones_evento.get)
+    evento = api_client.cargar(api_client.get_evento, evento_id) if evento_id else None
 
-    try:
-        ev = api.get_evento(evento_id)
-    except ApiError as e:
-        ui.mostrar_error(e)
-        st.stop()
+    if evento:
+        st.write(f"**Estado:** {evento['estado']}  |  **Salón:** {salones.get(evento['salon_id'])}  |  "
+                 f"**Horario:** {api_client.fecha_hora(evento['inicio'])} a {api_client.fecha_hora(evento['fin'])}")
+        c1, c2, c3 = st.columns(3)
+        c1.metric("Inscritos / aforo", f"{evento['asistencia']['inscritos']} / {evento['aforo_esperado']}")
+        c2.metric("Valor total", api_client.dinero(evento["valor_total_cotizado"]))
+        c3.metric("Tasa de asistencia", f"{evento['tasa_asistencia']} %" if evento["tasa_asistencia"] else "-")
 
-    st.subheader(f"{ev['estado']} · {salones.get(ev['salon_id'], ev['salon_id'])}")
-    m1, m2, m3 = st.columns(3)
-    m1.metric("Aforo / inscritos", f"{ev['aforo_esperado']} / {ev['asistencia']['inscritos']}")
-    m2.metric("Valor total", ui.dinero(ev["valor_total_cotizado"]))
-    m3.metric("Tasa asistencia", ui.porcentaje(ev["tasa_asistencia"]))
-    st.caption(
-        f"{ui.fecha_hora(ev['inicio'])} → {ui.fecha_hora(ev['fin'])} · Cliente: {clientes.get(ev['cliente_id'])} · "
-        f"Coordinador: {staff.get(ev['coordinador_id'], {}).get('nombre', '—')} · "
-        f"Llegaron: {ev['asistencia']['asistentes_reales']}"
-    )
+        t_cotizacion, t_servicios, t_estado, t_reprogramar, t_auditoria = st.tabs(
+            ["Cotización", "Servicios", "Estado", "Reprogramar", "Auditoría"]
+        )
 
-    t_cot, t_serv, t_estado, t_repro, t_aud = st.tabs(
-        ["Cotización", "Servicios", "Estado", "Reprogramar", "Auditoría"]
-    )
+        with t_cotizacion:
+            cotizacion = api_client.cargar(api_client.get_cotizacion, evento_id)
+            if cotizacion:
+                filas = [{
+                    "Concepto": "Alquiler del salón",
+                    "Cantidad": cotizacion["hora_salon"],
+                    "Precio unitario": api_client.dinero(cotizacion["precio_hora_salon"]),
+                    "Subtotal": api_client.dinero(cotizacion["valor_total_salon"]),
+                }]
+                for s in cotizacion["servicios"]:
+                    filas.append({
+                        "Concepto": s["nombre_servicio"],
+                        "Cantidad": s["cantidad"],
+                        "Precio unitario": api_client.dinero(s["precio_unidad_cotizado"]),
+                        "Subtotal": api_client.dinero(s["valor_total_cotizado"]),
+                    })
+                st.dataframe(pd.DataFrame(filas), hide_index=True)
+                st.metric("Total (salón + servicios)", api_client.dinero(cotizacion["valor_total_cotizado"]))
 
-    # Cotización
-    with t_cot:
-        cot = ui.cargar(api.get_cotizacion, evento_id, defecto={})
-        if cot:
-            filas = [{
-                "Concepto": f"Alquiler {salones.get(ev['salon_id'])}",
-                "Cobro": "Hora",
-                "Cantidad": cot["hora_salon"],
-                "Precio unitario": ui.dinero(cot["precio_hora_salon"]),
-                "Subtotal": ui.dinero(cot["valor_total_salon"]),
-            }] + [{
-                "Concepto": s["nombre_servicio"],
-                "Cobro": s["unidad_cobro"],
-                "Cantidad": s["cantidad"],
-                "Precio unitario": ui.dinero(s["precio_unidad_cotizado"]),
-                "Subtotal": ui.dinero(s["valor_total_cotizado"]),
-            } for s in cot["servicios"]]
-            st.dataframe(pd.DataFrame(filas), hide_index=True, width="stretch")
-
-            c1, c2, c3 = st.columns(3)
-            c1.metric("Salón", ui.dinero(cot["valor_total_salon"]))
-            c2.metric("Servicios", ui.dinero(cot["total_servicios"]))
-            c3.metric("Total (guardado por el trigger A3)", ui.dinero(cot["valor_total_cotizado"]))
-            suma = float(cot["valor_total_salon"]) + float(cot["total_servicios"])
-            if abs(suma - float(cot["valor_total_cotizado"])) < 0.5:
-                st.success("Salón + servicios = total (el valor guardado en la base coincide con el desglose)")
-            else:
-                st.warning(f"El desglose suma {ui.dinero(suma)} y el total guardado es {ui.dinero(cot['valor_total_cotizado'])}.")
-            st.caption("Los precios unitarios están congelados al momento de contratar: si cambia el catálogo, esta cotización no cambia.")
-
-    # Servicios
-    with t_serv:
-        contratados = ev["servicios"]
-        if contratados:
-            tabla_serv = pd.DataFrame([{
-                "Servicio": servicios.get(s["servicio_id"], {}).get("nombre_servicio", s["servicio_id"]),
-                "Cobro": servicios.get(s["servicio_id"], {}).get("unidad_cobro", ""),
-                "Cantidad": s["cantidad"],
-                "Precio congelado": ui.dinero(s["precio_unidad_cotizado"]),
-                "Precio catálogo hoy": ui.dinero(servicios.get(s["servicio_id"], {}).get("precio")),
-            } for s in contratados])
-            st.dataframe(tabla_serv, hide_index=True, width="stretch")
-        else:
-            st.info("Este evento aún no tiene servicios contratados.")
-
-        if ev["estado"] in ("Finalizado", "Cancelado"):
-            st.caption(f"El evento está {ev['estado']}: el trigger A3 rechazará cualquier cambio en sus servicios.")
-
-        c_add, c_mod = st.columns(2)
-        with c_add:
-            st.markdown("**Agregar servicio**")
-            with st.form("form_add_serv"):
-                sid = st.selectbox(
-                    "Servicio", list(servicios),
-                    format_func=lambda i: f"{servicios[i]['nombre_servicio']} ({servicios[i]['unidad_cobro']}, {ui.dinero(servicios[i]['precio'])})",
-                )
-                automatica = st.checkbox(
-                    "Cantidad automática", value=True,
-                    help="Por persona → aforo esperado; por hora → duración del evento redondeada hacia arriba (lo calcula el trigger A3).",
-                )
-                cantidad = st.number_input("Cantidad (si no es automática)", min_value=1, value=1)
-                if st.form_submit_button("Agregar", type="primary"):
-                    try:
-                        api.agregar_servicio_evento(evento_id, sid, None if automatica else int(cantidad))
-                        ui.exito(f"Servicio «{servicios[sid]['nombre_servicio']}» agregado. El total del evento se recalculó en la base.")
-                    except ApiError as e:
-                        ui.mostrar_error(e)
-
-        with c_mod:
-            st.markdown("**Modificar o quitar un servicio contratado**")
+        with t_servicios:
+            contratados = evento["servicios"]
             if contratados:
-                with st.form("form_mod_serv"):
-                    sid_mod = st.selectbox(
-                        "Servicio contratado", [s["servicio_id"] for s in contratados],
-                        format_func=lambda i: servicios.get(i, {}).get("nombre_servicio", i),
-                    )
-                    nueva_cant = st.number_input("Nueva cantidad", min_value=1, value=1)
-                    b1, b2 = st.columns(2)
-                    modificar = b1.form_submit_button("Modificar cantidad")
-                    quitar = b2.form_submit_button("Quitar servicio")
+                st.dataframe(pd.DataFrame([{
+                    "Servicio": servicios.get(s["servicio_id"]),
+                    "Cantidad": s["cantidad"],
+                    "Precio congelado": api_client.dinero(s["precio_unidad_cotizado"]),
+                } for s in contratados]), hide_index=True)
+
+            with st.form("agregar_servicio"):
+                servicio_id = st.selectbox("Servicio", list(servicios), format_func=servicios.get)
+                cantidad = st.number_input("Cantidad (0 = automática según aforo u horas)", min_value=0, value=0)
+                if st.form_submit_button("Agregar servicio"):
                     try:
-                        if modificar:
-                            api.actualizar_servicio_evento(evento_id, sid_mod, int(nueva_cant))
-                            ui.exito("Cantidad actualizada y total recalculado.")
-                        if quitar:
-                            api.quitar_servicio_evento(evento_id, sid_mod)
-                            ui.exito("Servicio quitado y total recalculado.")
+                        api_client.agregar_servicio(evento_id, servicio_id, int(cantidad) or None)
+                        api_client.exito("Servicio agregado. El total se recalculó en la base.")
                     except ApiError as e:
-                        ui.mostrar_error(e)
+                        api_client.mostrar_error(e)
+
+            if contratados:
+                with st.form("modificar_servicio"):
+                    servicio_id = st.selectbox("Servicio contratado", [s["servicio_id"] for s in contratados],
+                                               format_func=servicios.get)
+                    cantidad = st.number_input("Nueva cantidad", min_value=1, value=1)
+                    c1, c2 = st.columns(2)
+                    modificar = c1.form_submit_button("Modificar cantidad")
+                    quitar = c2.form_submit_button("Quitar servicio")
+                try:
+                    if modificar:
+                        api_client.modificar_servicio(evento_id, servicio_id, int(cantidad))
+                        api_client.exito("Cantidad modificada. El total se recalculó en la base.")
+                    if quitar:
+                        api_client.quitar_servicio(evento_id, servicio_id)
+                        api_client.exito("Servicio quitado. El total se recalculó en la base.")
+                except ApiError as e:
+                    api_client.mostrar_error(e)
+
+        with t_estado:
+            nuevo_estado = st.selectbox("Nuevo estado", ["Confirmado", "Finalizado", "Cancelado"])
+            if st.button("Cambiar estado"):
+                try:
+                    respuesta = api_client.cambiar_estado(evento_id, nuevo_estado)
+                    api_client.exito(f"El evento ahora está {respuesta['estado']}.")
+                except ApiError as e:
+                    api_client.mostrar_error(e)
+
+        with t_reprogramar:
+            nuevo_inicio = fecha_y_hora("Inicio", datetime.fromisoformat(evento["inicio"]), f"rep_inicio_{evento_id}")
+            nuevo_fin = fecha_y_hora("Fin", datetime.fromisoformat(evento["fin"]), f"rep_fin_{evento_id}")
+            nuevo_aforo = st.number_input("Aforo esperado", min_value=1, value=evento["aforo_esperado"],
+                                          key=f"rep_aforo_{evento_id}")
+            nuevo_salon = st.selectbox("Salón", list(salones), index=list(salones).index(evento["salon_id"]),
+                                       format_func=salones.get, key=f"rep_salon_{evento_id}")
+            if st.button("Reprogramar"):
+                try:
+                    api_client.reprogramar_evento(evento_id, {
+                        "inicio": nuevo_inicio.isoformat(), "fin": nuevo_fin.isoformat(),
+                        "aforo_esperado": int(nuevo_aforo), "salon_id": nuevo_salon,
+                    })
+                    api_client.exito("Evento reprogramado. El cambio quedó en la auditoría.")
+                except ApiError as e:
+                    api_client.mostrar_error(e)
+
+        with t_auditoria:
+            auditoria = api_client.cargar(api_client.get_auditoria, evento_id)
+            if auditoria:
+                st.dataframe(pd.DataFrame([{
+                    "Fecha": api_client.fecha_hora(a["fecha_hora"]),
+                    "Usuario": a["usuario"],
+                    "Campo": a["campo_modificado"],
+                    "Antes": a["valor_anterior"],
+                    "Después": a["valor_nuevo"],
+                } for a in auditoria]), hide_index=True)
             else:
-                st.caption("No hay servicios para modificar.")
-
-    # Estado
-    with t_estado:
-        st.markdown(
-            "Flujo permitido: **Cotizado → Confirmado → Finalizado**, y **Cancelado** desde Cotizado o Confirmado. "
-            "Finalizado y Cancelado son definitivos. Solo se puede finalizar cuando ya pasó la hora de fin "
-            "(al hacerlo, el trigger A4 calcula la tasa de asistencia)."
-        )
-        b1, b2, b3 = st.columns(3)
-        nuevo_estado = None
-        if b1.button("Confirmar", width="stretch"):
-            nuevo_estado = "Confirmado"
-        if b2.button("Finalizar", width="stretch"):
-            nuevo_estado = "Finalizado"
-        if b3.button("Cancelar evento", width="stretch"):
-            nuevo_estado = "Cancelado"
-        if nuevo_estado:
-            try:
-                r = api.cambiar_estado_evento(evento_id, nuevo_estado)
-                extra = f" Tasa de asistencia: **{ui.porcentaje(r['tasa_asistencia'])}**." if nuevo_estado == "Finalizado" else ""
-                ui.exito(f"Evento #{evento_id} ahora está **{r['estado']}**.{extra}")
-            except ApiError as e:
-                ui.mostrar_error(e)
-
-    # Reprogramar
-    with t_repro:
-        st.markdown("Cambie salón, horario o aforo. El trigger A1 valida capacidad, salón habilitado y cruces (con 1 h de montaje).")
-        ini_actual = datetime.fromisoformat(ev["inicio"])
-        fin_actual = datetime.fromisoformat(ev["fin"])
-        n_ini = selector_fecha_hora("Nuevo inicio", ini_actual, f"rep_ini_{evento_id}")
-        n_fin = selector_fecha_hora("Nuevo fin", fin_actual, f"rep_fin_{evento_id}")
-        c1, c2 = st.columns(2)
-        n_aforo = c1.number_input("Aforo esperado", min_value=1, value=int(ev["aforo_esperado"]), key=f"rep_af_{evento_id}")
-        n_salon = c2.selectbox(
-            "Salón", list(salones), index=list(salones).index(ev["salon_id"]), key=f"rep_sal_{evento_id}",
-            format_func=lambda i: next(f"{s['nombre_salon']} (cap. {s['capacidad']}{'' if s['habilitado'] else ', deshabilitado'})"
-                                       for s in salones_lista if s["id"] == i),
-        )
-        cambios = {}
-        if n_ini != ini_actual:
-            cambios["inicio"] = n_ini.isoformat()
-        if n_fin != fin_actual:
-            cambios["fin"] = n_fin.isoformat()
-        if n_aforo != ev["aforo_esperado"]:
-            cambios["aforo_esperado"] = int(n_aforo)
-        if n_salon != ev["salon_id"]:
-            cambios["salon_id"] = n_salon
-
-        if cambios:
-            st.caption("Cambios a enviar: " + ", ".join(cambios))
-        if st.button("Guardar reprogramación", type="primary", disabled=not cambios):
-            try:
-                r = api.reprogramar_evento(evento_id, cambios)
-                ui.exito(f"Evento reprogramado. Nuevo valor total: **{ui.dinero(r['valor_total_cotizado'])}**. El cambio quedó en la auditoría.")
-            except ApiError as e:
-                ui.mostrar_error(e)
-
-    # Auditoría
-    with t_aud:
-        auditoria = ui.cargar(api.get_auditoria, evento_id)
-        if auditoria:
-            nombres_salon = {str(k): v for k, v in salones.items()}
-            st.dataframe(pd.DataFrame([{
-                "Fecha": ui.fecha_hora(a["fecha_hora"]),
-                "Usuario": a["usuario"],
-                "Campo": a["campo_modificado"],
-                "Antes": nombres_salon.get(a["valor_anterior"], a["valor_anterior"]) if a["campo_modificado"] == "salon_id" else a["valor_anterior"],
-                "Después": nombres_salon.get(a["valor_nuevo"], a["valor_nuevo"]) if a["campo_modificado"] == "salon_id" else a["valor_nuevo"],
-            } for a in auditoria]), hide_index=True, width="stretch")
-        else:
-            st.info("Este evento no tiene cambios registrados.")
+                st.info("Este evento no tiene cambios registrados.")
