@@ -102,6 +102,7 @@ Códigos de respuesta: `200/201/204` en éxito, `404` si el recurso no existe, `
 | [Reporte Evidencia Funcionamiento.pdf](<Reporte Evidencia Funcionamiento.pdf>) | Evidencia de las pruebas del Entregable 1: petición, tablas y reglas involucradas en cada prueba MIN y B. |
 | [Diccionario NexoEvents.pdf](<Diccionario NexoEvents.pdf>) | Detalle campo por campo de las 9 tablas. |
 | [Diagrama_relacional_parcial_2_Ingeniería_de_datos.pdf](<Diagrama_relacional_parcial_2_Ingeniería_de_datos.pdf>) | Modelo entidad-relación. |
+| [Presentacion_NexoEventos.pdf](<Presentacion_NexoEventos.pdf>) | Presentación del desarrollo y evidencias. |
 | `documentacion/documentacion_back/` | Capturas de evidencia de la API (MIN-01 a MIN-23, A4, A5, B1-B4). |
 | `documentacion/documentacion_front/` | Capturas del frontend que ilustran el Manual de usuario. |
 
@@ -131,6 +132,7 @@ Códigos de respuesta: `200/201/204` en éxito, `404` si el recurso no existe, `
 ├── Reporte Evidencia Funcionamiento.pdf
 ├── Diccionario NexoEvents.pdf
 ├── Diagrama_relacional_parcial_2_Ingeniería_de_datos.pdf
+├── Presentacion_NexoEventos.pdf
 ├── requirements.txt
 └── README.md
 ```
