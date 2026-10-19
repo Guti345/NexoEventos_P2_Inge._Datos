@@ -67,7 +67,7 @@ Relaciones principales: `eventos` referencia a `clientes`, `salones` y `staff` (
 
 ## Endpoints y Pruebas (Manual de rutas)
 
-La API expone 23 endpoints mínimos, documentados con la evidencia de pruebas incluida en **[Reporte Evidencia Funcionamiento.pdf](<Reporte Evidencia Funcionamiento.pdf>)** (petición, tablas y reglas involucradas en cada una). La documentación interactiva está en `/docs` (Swagger) con la API en ejecución.
+La API expone 23 endpoints mínimos, documentados con la evidencia de pruebas incluida en **[Reporte Evidencia Funcionamiento.pdf](<Reporte Evidencia Funcionamiento.pdf>)** (petición, tablas y reglas involucradas en cada una). La documentación interactiva está en `/docs` (Swagger) con la API en ejecución. 
 
 Códigos de respuesta: `200/201/204` en éxito, `404` si el recurso no existe, `409` cuando un trigger rechaza la operación (incluye el mensaje de la regla violada), `422` cuando el DTO de Pydantic rechaza los datos de entrada.
 
@@ -120,6 +120,8 @@ Códigos de respuesta: `200/201/204` en éxito, `404` si el recurso no existe, `
 │   └── pages/             # 5 módulos: Eventos, Asistentes y check-in,
 │                          # Disponibilidad de salones, Clientes y staff, Reportes
 ├── documentacion/         # Evidencia en capturas y manuales
+│   ├── documentacion_back
+│   └── documentacion_front
 ├── requirements.txt
 └── README.md
 ```
@@ -184,9 +186,3 @@ streamlit run app.py
 ```
 
 Interfaz: `http://localhost:8501`.
-
-## Cómo validar el funcionamiento
-
-- **Desde el frontend (Entregable 2)**: con la API y la base cargadas, ejecutar `streamlit run app.py` y recorrer los 5 módulos: crear un evento (solo ofrece salones disponibles, A5), agregar servicios y ver el total recalcularse (A3), cambiar el estado y revisar la auditoría (A4), intentar reprogramar un evento sobre otro en el mismo salón (A1 bloquea con el mensaje de la regla), inscribir por encima del aforo (A2 bloquea) y abrir la pestaña **Reportes** (B1-B4).
-- **Desde la API**: importar la colección de Postman (o usar `/docs`) y ejecutar las pruebas MIN-01 a MIN-23 en orden; varias dependen de IDs creados por pruebas previas (p. ej. MIN-21 inscribe al asistente creado en MIN-20). La evidencia de estas pruebas es la incluida en el manual de rutas.
-- **Directo en la base**: para confirmar que una regla vive en la base (no solo en Python), repetir la operación bloqueada desde `psql`/pgAdmin y verificar que también sea rechazada.
