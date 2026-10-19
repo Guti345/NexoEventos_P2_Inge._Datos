@@ -26,7 +26,7 @@ Streamlit (front/)  ->  FastAPI (back/app/)  ->  PostgreSQL (triggers, funciones
 | **Backend** - `back/` | FastAPI + SQLAlchemy + Pydantic | API REST: entidades (`app/models.py`), DTO de entrada/salida (`app/schemas.py`) y un router por recurso (`app/routers/`). |
 | **Reglas de negocio** - `back/sql/` | PostgreSQL (PL/pgSQL) | Triggers, funciones y vistas que se aplican después de `Base.metadata.create_all(...)`; incluye la carga de datos de prueba (`datos_prueba.sql`). |
 | **Frontend** - `front/` | Streamlit | Interfaz visual que consume la API. Tablero de inicio (eventos por estado, tasa de asistencia, próximos eventos) y 5 módulos: **Eventos** (crear con salones disponibles, cotización, servicios, estado, reprogramación, auditoría), **Asistentes y check-in**, **Disponibilidad de salones**, **Clientes y staff** y **Reportes**. Cuando la base bloquea una operación (HTTP 409), la interfaz muestra el mensaje del trigger con la regla violada (A1-A4). |
-| **Documentación** - `documentacion/` | - | Evidencia en capturas (Postman/Swagger) de cada regla de negocio y reporte. |
+| **Documentación** | PDF en la raíz y capturas en `documentacion/` | Manual de rutas, manual de usuario, diccionario de datos, diagrama relacional, reporte de evidencia del Entregable 1 y las capturas que los respaldan (API en `documentacion/documentacion_back/`, frontend en `documentacion/documentacion_front/`). |
 
 ### Lógica en base de datos
 
@@ -65,11 +65,11 @@ El esquema (normalizado a 3FN) está compuesto por 9 tablas generadas a partir d
 
 Relaciones principales: `eventos` referencia a `clientes`, `salones` y `staff` (coordinador); `servicios_eventos` resuelve eventos↔servicios; `inscripciones` resuelve asistentes↔eventos; `staff.jefe_id` es una auto-referencia; `trazabilidad.evento_id` referencia a `eventos`.
 
-## Endpoints y Pruebas (Manual de rutas)
+## Endpoints de la API
 
-La API expone 23 endpoints mínimos, documentados con la evidencia de pruebas incluida en **[Reporte Evidencia Funcionamiento.pdf](<Reporte Evidencia Funcionamiento.pdf>)** (petición, tablas y reglas involucradas en cada una). La documentación interactiva está en `/docs` (Swagger) con la API en ejecución. 
+La API expone las 23 rutas mínimas del enunciado y los 4 reportes; todas las consume el frontend (`front/api_client.py`). El detalle de cada endpoint (método, ruta, parámetros y códigos de respuesta propios de esa ruta, con el mensaje de la regla cuando un trigger bloquea) está en **[Manual Rutas NexoEventos.pdf](<Manual Rutas NexoEventos.pdf>)** y las pruebas/Manual de Usuario en **[Manual Usuario NexoEventos.pdf](<Manual Usuario NexoEventos.pdf>)**. La documentación interactiva está en `/docs` (Swagger) con la API en ejecución, y la evidencia de pruebas del Entregable 1 en **[Reporte Evidencia Funcionamiento.pdf](<Reporte Evidencia Funcionamiento.pdf>)**.
 
-Códigos de respuesta: `200/201/204` en éxito, `404` si el recurso no existe, `409` cuando un trigger rechaza la operación (incluye el mensaje de la regla violada), `422` cuando el DTO de Pydantic rechaza los datos de entrada.
+Códigos de respuesta: `200/201/204` en éxito, `404` si el recurso no existe, `409` cuando la operación es rechazada por un trigger o por el router (incluye el mensaje de la regla violada), `422` cuando la validación de FastAPI/Pydantic rechaza los datos de entrada. Cada ruta devuelve solo los códigos que le aplican; el manual de rutas los lista uno por uno.
 
 | Prueba | Método | Ruta | Qué valida |
 |---|---|---|---|
@@ -97,11 +97,13 @@ Códigos de respuesta: `200/201/204` en éxito, `404` si el recurso no existe, `
 
 | Documento | Contenido |
 |---|---|
+| [Manual Rutas NexoEventos.pdf](<Manual Rutas NexoEventos.pdf>) | Manual de rutas de la API: ficha por endpoint (método, ruta, propósito, parámetros y códigos de respuesta propios), con las convenciones de la API y los mensajes de los triggers. |
+| [Manual Usuario NexoEventos.pdf](<Manual Usuario NexoEventos.pdf>) | Manual de usuario del frontend: puesta en marcha y recorrido por el tablero y los 5 módulos, ilustrado con las capturas de `documentacion/documentacion_front/`. |
+| [Reporte Evidencia Funcionamiento.pdf](<Reporte Evidencia Funcionamiento.pdf>) | Evidencia de las pruebas del Entregable 1: petición, tablas y reglas involucradas en cada prueba MIN y B. |
 | [Diccionario NexoEvents.pdf](<Diccionario NexoEvents.pdf>) | Detalle campo por campo de las 9 tablas. |
 | [Diagrama_relacional_parcial_2_Ingeniería_de_datos.pdf](<Diagrama_relacional_parcial_2_Ingeniería_de_datos.pdf>) | Modelo entidad-relación. |
-| [Reporte Evidencia Funcionamiento.pdf](<Reporte Evidencia Funcionamiento.pdf>) | **Manual de rutas**: endpoints con evidencia de pruebas. |
-| `documentacion/` | Capturas de evidencia por prueba (MIN-01 a MIN-23, A4, A5, B1-B4). |
-| Manual de usuario del frontend | Documento por anexar a `documentacion/` (requerido por el enunciado del Entregable 2). |
+| `documentacion/documentacion_back/` | Capturas de evidencia de la API (MIN-01 a MIN-23, A4, A5, B1-B4). |
+| `documentacion/documentacion_front/` | Capturas del frontend que ilustran el Manual de usuario. |
 
 ## Estructura del repositorio
 
@@ -119,9 +121,16 @@ Códigos de respuesta: `200/201/204` en éxito, `404` si el recurso no existe, `
 │   ├── api_client.py      # Cliente HTTP de la API y manejo de errores
 │   └── pages/             # 5 módulos: Eventos, Asistentes y check-in,
 │                          # Disponibilidad de salones, Clientes y staff, Reportes
-├── documentacion/         # Evidencia en capturas y manuales
-│   ├── documentacion_back
-│   └── documentacion_front
+├── documentacion/
+│   ├── documentacion_back/    # Capturas de evidencia de la API
+│   └── documentacion_front/   # Capturas del frontend
+├── otros/sql_dp/          # Los mismos triggers, funciones y reportes organizados en
+│                          # 3 scripts comentados, con referencias a la documentación de PostgreSQL
+├── Manual Rutas NexoEventos.pdf
+├── Manual Usuario NexoEventos.pdf
+├── Reporte Evidencia Funcionamiento.pdf
+├── Diccionario NexoEvents.pdf
+├── Diagrama_relacional_parcial_2_Ingeniería_de_datos.pdf
 ├── requirements.txt
 └── README.md
 ```
@@ -185,4 +194,4 @@ cd front
 streamlit run app.py
 ```
 
-Interfaz: `http://localhost:8501`.
+Interfaz: `http://localhost:8501`. Por defecto el frontend busca la API en `http://localhost:8000`; si la API corre en otra dirección, defina la variable de entorno `NEXO_API_URL` antes de ejecutar Streamlit.
